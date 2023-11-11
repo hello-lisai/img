@@ -1,77 +1,175 @@
-<!DOCTYPE HTML>
-<html>
-
+ <!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-	<title></title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   
 	<link rel="stylesheet" href="./index.css">
-	<style>
-		.a {
-			position: fixed;
-			top: 10%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background: transparent;
-			
-			border-radius: 20px;
-			padding: 20px 40px;
-			border: 2px solid transparent;
-			font-size: 20px;
-			cursor: pointer;
-			white-space: nowrap;
-		}
-		.b {
-			position: fixed;
-			top: 20%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background: transparent;
-			
-			border-radius: 20px;
-			padding: 20px 40px;
-			border: 2px solid transparent;
-			font-size: 20px;
-			cursor: pointer;
-		}
-		.c {
-			position: fixed;
-			top: 30%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background: transparent;
-			
-			border-radius: 20px;
-			padding: 20px 40px;
-			border: 2px solid transparent;
-			font-size: 20px;
-			cursor: pointer;
-		}
-		.d {
-			position: fixed;
-			top: 40%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background: transparent;
-			
-			border-radius: 20px;
-			padding: 20px 40px;
-			border: 2px solid transparent;
-			font-size: 20px;
-			cursor: pointer;
-		}
-	</style>
+    <title>LS</title> 
+    <style>
+        /* CSS样式 */
+        body {
+            background-image: url('./bg.jpg');
+        background-repeat: repeat-x;
+        animation: moveBackground 80s linear infinite;
+        background-size: cover;
+        }
+        
+        @keyframes moveBackground {
+        0% {
+          background-position: left 0;
+        }
+        50% {
+          background-position: right 0;
+        }
+        100% {
+          background-position: left 0;
+        }
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: rgb(248, 247, 247)282;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo img {
+            width: 100px;
+        }
+        
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .search-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #3385ff;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
+<body >
+   
 
-<body class="loading">
-	<div id="bg"></div>
-	
-	<a href="https://hello-lisai.github.io"><button class="a">LiSAI-个人主页</button></a>  
-	<a href="https://quanben-xiaoshuo.com/"><button class="b">小说</button></a>
-	<a href="https://lisai.link/-----https://www.youtube.com/"><button class="c">油管</button></a>
+    <div class="container">
+        <div class="logo">
+            <a href="https://hello-lisai.github.io">
+                <img src="./1.png" alt="l">
+              </a>
+               
+              
+        </div>
+        <div class="search-form">
+            <input class="search-input" type="text" id="search-input" placeholder="请输入搜索关键词">
+            <button  class="search-button" onclick="search_youtube()">Youtube搜索</button>
+            <button  class="search-button" onclick="search_bing()">bing搜索</button>
+            <button  class="search-button" onclick="search_wiki()">维基百科搜索</button>
+            <button  class="search-button" onclick="search_baidu()">百度搜索</button>
+            <button  class="search-button" onclick="search_book()">小说搜索</button>
+            <button  class="search-button" onclick="search_song()">歌曲搜索</button>
+        </div>
+    </div>
 
-	<a href="https://lisai.link/-----https://www.youtube.com/"><button class="d">油管</button></a> 
-	
+    <script>
+        // JavaScript代码
+     
+        function search_bing() {
+            var keyword = document.getElementById("search-input").value;
+            var url = "https://cn.bing.com/search?q=" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+        }
+    
+       
+        function search_youtube() {
+            var keyword = document.getElementById("search-input").value;
+
+            // 检查 keyword 是否为空https://lisai.link/-----https://zh.wikipedia.org/wiki/
+            if (keyword.trim() === "") {
+            window.location.href = "https://lisai.link/-----https://www.youtube.com"; // 替换为你想要跳转的网页
+            return false;
+         }
+
+             var url = "https://lisai.link/-----https://www.youtube.com/results?search_query=" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+   
+          }
+          function search_baidu() {
+            var keyword = document.getElementById("search-input").value;
+            var url = "https://www.baidu.com/s?wd=" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+        }
+        function search_wiki() {
+            var keyword = document.getElementById("search-input").value;
+
+            // 检查 keyword 是否为空https://lisai.link/-----https://zh.wikipedia.org/wiki/;https://quanben-xiaoshuo.com/?c=book&a=search&keyword=
+            if (keyword.trim() === "") {
+            window.location.href = "https://lisai.link/-----https://zh.wikipedia.org/wiki/"; // 替换为你想要跳转的网页
+            return false;
+         }
+
+             var url = "https://lisai.link/-----https://zh.wikipedia.org/wiki/" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+   
+          }
+          function search_book() {
+            var keyword = document.getElementById("search-input").value;
+
+            // 检查 keyword 是否为空https://lisai.link/-----https://zh.wikipedia.org/wiki/;https://quanben-xiaoshuo.com/?c=book&a=search&keyword=
+            if (keyword.trim() === "") {
+            window.location.href = "https://quanben-xiaoshuo.com/"; // 替换为你想要跳转的网页
+            return false;
+         }
+
+             var url = "https://quanben-xiaoshuo.com/?c=book&a=search&keyword=" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+   
+          }
+          function search_song() {
+            var keyword = document.getElementById("search-input").value;
+
+            // 检查 keyword 是否为空https://lisai.link/-----https://zh.wikipedia.org/wiki/;https://quanben-xiaoshuo.com/?c=book&a=search&keyword= 
+            if (keyword.trim() === "") { 
+            window.location.href = "http://tool.liumingye.cn/music"; // 替换为你想要跳转的网页
+            return false;
+         }
+
+             var url = "http://tool.liumingye.cn/music/#/search/M/song/" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+   
+          }
+
+
+    </script>
 </body>
-
 </html>
