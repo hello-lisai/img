@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>File Upload</title>
+</head>
+<body>
+  <form id="upload-form" enctype="multipart/form-data">
+    <input type="file" name="file">
+    <button type="submit">Upload</button>
+  </form>
+
+  <script>
+    document.getElementById('upload-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(document.getElementById('upload-form'));
+      const response = await fetch('https://github.gd972446.workers.dev', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('File uploaded successfully to GitHub.');
+      } else {
+        alert('Failed to upload file to GitHub.');
+      }
+    });
+  </script>
+</body>
+</html>
