@@ -1,0 +1,10 @@
+ngrok http --domain=saving-personally-muskox.ngrok-free.app 80   
+ngrok config add-authtoken 2YQA8eUHyLKsKBzZMYfXf4NR8YF_rSFy6VXm5XLaZZykN8u9
+ngrok http 80
+0a463118-ecda-43da-89f5-fe64381130e1
+D0L8Q~rJD75DRWwkorDmZH3uu20TmhGQTq-dXaWS
+vercel token OdCwsNyCcdJagxBbJNhk8802
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+6666666666666666666666666666666666666666666
+</head>
