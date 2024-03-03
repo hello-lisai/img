@@ -92,6 +92,7 @@
             <button  class="search-button" onclick="search_baidu()">百度搜索</button>
             <button  class="search-button" onclick="search_book()">小说搜索</button>
             <button  class="search-button" onclick="search_song()">歌曲搜索</button>
+            <button  class="search-button" onclick="search_invidious()">invidious搜索</button>
         </div>
     </div>
 
@@ -164,6 +165,20 @@
          }
 
              var url = "http://tool.liumingye.cn/music/#/search/M/song/" + encodeURIComponent(keyword);
+            window.location.href = url;
+            return false;
+   
+          }
+          function search_invidious() {
+            var keyword = document.getElementById("search-input").value;
+
+            // 检查 keyword 是否为空https://lisai.link/-----https://zh.wikipedia.org/wiki/
+            if (keyword.trim() === "") {
+            window.location.href = "https://lisai.link/-----https://invidious.jing.rocks/feed/popular"; // 替换为你想要跳转的网页
+            return false;
+         }
+
+             var url = "https://lisai.link/-----https://invidious.jing.rocks/search?q=" + encodeURIComponent(keyword);
             window.location.href = url;
             return false;
    
