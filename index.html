@@ -3,9 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="./index.css">
-    <title>LISAI</title> 
+       <style>
+        /* 新的样式 */
+        #current-time {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            font-size: 28px;
+            color: #333;
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background-color: transparent; /* 背景透明 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <title>LISAI</title>
+    <style>
+        /* 新的样式 */
+        #current-time {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            font-size: 28px;
+            color: #333;
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
     <style>
         /* CSS样式 */
         body {
@@ -78,9 +106,9 @@
 
     <div class="container">
         <div class="logo">
-            <a href="https://hi.lisai.link">
-                <img src="./1.png" alt="l">
-              </a>
+            
+                <span id="current-time"></span>
+            
                
               
         </div>
@@ -95,6 +123,25 @@
             <button  class="search-button" onclick="search_invidious()">invidious搜索</button>
         </div>
     </div>
+    <script>
+        function updateTime() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+    
+            // 添加前导零
+            hours = String(hours).padStart(2, '0');
+            minutes = String(minutes).padStart(2, '0');
+            seconds = String(seconds).padStart(2, '0');
+    
+            var currentTimeString = hours + ":" + minutes + ":" + seconds;
+            document.getElementById('current-time').textContent = currentTimeString;
+        }
+    
+        // 每秒更新一次时间
+        setInterval(updateTime, 1000);
+    </script>
 
     <script>
         // JavaScript代码
