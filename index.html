@@ -253,8 +253,8 @@ function saveToDatabase() {
 
     
     
-    if (content.length > 12) {
-        alert("保存内容不能超过10个字符");
+    if (content.trim() === "" || content.length > 10) {
+        alert("保存内容不能超过10个字符,也不能为空");
         return;
     }
     addRecord(content);
@@ -304,6 +304,8 @@ function showDatabaseContent() {
             importButton.style.marginRight = "2px"; // 设置右边间距
             importButton.onclick = function() {
                 document.getElementById("search-input").value += recordContent;
+                var popup = document.getElementById("popup");
+                popup.style.display = "none";
             };
             recordDiv.appendChild(importButton);
 
@@ -367,7 +369,7 @@ function deleteRecord(id) {
     <script>
         // JavaScript代码
         function help() {
-        alert("注意：本应用适用于谷歌浏览器，其他浏览器或加载失败，如何搜索内容？在请输入关键词内输入你想输入的内容，然后点击下方某某搜索按钮即可；如何使用快捷输入？点击快捷输入后，在里面的输入框写入的常用搜索内容，然后点击保存按钮后，再点击导入按钮将内容导入到搜索栏");
+        alert("注意：本应用适用于谷歌浏览器，其他浏览器或加载失败，如何搜索内容？在请输入关键词内输入你想输入的内容，然后点击下方某某搜索按钮即可；如何使用快捷输入？点击快捷输入后，在里面的输入框写入的常用搜索内容，然后点击保存按钮后，再点击导入按钮将内容导入到搜索栏，如果内容过多或无法显示，请尝试滚动或滑动");
     }
      
         function search_bing() {
