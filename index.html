@@ -57,15 +57,15 @@
 
 textarea {
     border-radius: 5px; /* 输入框添加弧度 */
-    width: 100%;
+    width: 90%;
     padding: 5px;
     margin-bottom: 10px;
-}
     
-    textarea {
-        width: 100%;
-        margin-bottom: 10px;
-    }
+    display: block; /* 将 textarea 元素转换为块级元素 */
+    margin: 0 auto; /* 使用 auto 居中水平对齐 */
+
+}
+  
     
     button {
         padding: 5px 10px;
@@ -141,6 +141,8 @@ textarea {
             border-radius: 20px;
             font-size: 16px;
             outline: none;
+            display: block;
+            margin: 0 auto;
         }
 
 
@@ -180,7 +182,7 @@ textarea {
                 <div id="database-content" style="max-height: 200px; overflow-y: auto; margin-top: 10px; margin-bottom: 10px;"></div>
                 <button onclick="saveToDatabase()" style="margin-top: 10px; margin-bottom: 5px;">保存</button>
                 <button onclick="clearTextarea()" style="margin-top: 5px; margin-bottom: 10px;">清空内容</button>
-                <button onclick="closePopup()" style="margin-top: 5px; margin-bottom: 10px;">关闭</button>
+                <button onclick="closePopup()" style="margin-top: 5px; margin-bottom: 10px;">关闭该窗口</button>
                 
             </div>
         </div>
@@ -299,7 +301,7 @@ function showDatabaseContent() {
             // 添加导入按钮
             var importButton = document.createElement("button");
             importButton.textContent = "导入";
-            importButton.style.marginRight = "10px"; // 设置右边间距
+            importButton.style.marginRight = "2px"; // 设置右边间距
             importButton.onclick = function() {
                 document.getElementById("search-input").value += recordContent;
             };
@@ -308,7 +310,7 @@ function showDatabaseContent() {
             // 添加删除按钮
             var deleteButton = document.createElement("button");
             deleteButton.textContent = "❌";
-            deleteButton.style.marginLeft = "10px"; // 设置左边间距
+            deleteButton.style.marginLeft = "2px"; // 设置左边间距
             deleteButton.onclick = function() {
                 deleteRecord(cursor.key);
                 showDatabaseContent();
@@ -352,6 +354,7 @@ function deleteRecord(id) {
     
     function clearTextarea() {
         document.getElementById("popup-textarea").value = "";
+        document.getElementById("search-input").value = "";
     }
     
     document.addEventListener("DOMContentLoaded", function() {
