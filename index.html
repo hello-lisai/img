@@ -110,25 +110,24 @@
             <button  class="search-button" onclick="search_invidious()">invidious搜索</button>
         </div>
     </div>
-    <script>
-        function updateTime() {
-            var now = new Date();
-            var hours = now.getHours();
-            var minutes = now.getMinutes();
-            var seconds = now.getSeconds();
-    
-            // 添加前导零
-            hours = String(hours).padStart(2, '0');
-            minutes = String(minutes).padStart(2, '0');
-            seconds = String(seconds).padStart(2, '0');
-    
-            var currentTimeString = hours + ":" + minutes + ":" + seconds;
-            document.getElementById('current-time').textContent = currentTimeString;
-        }
-    
-        // 每秒更新一次时间
-        setInterval(updateTime, 1000);
-    </script>
+<script>
+    function updateDate() {
+        var now = new Date();
+        var month = now.getMonth() + 1;
+        var day = now.getDate();
+
+        // 添加前导零
+        month = String(month).padStart(2, '0');
+        day = String(day).padStart(2, '0');
+
+        var currentDate = month + "-" + day;
+        document.getElementById('current-time').textContent = currentDate;
+    }
+
+    // 页面加载时即调用一次
+    updateDate();
+</script>
+
 
     <script>
         // JavaScript代码
