@@ -19,6 +19,64 @@
             
         }
     </style>
+
+<style>
+
+
+
+    .popup {
+    display: none;
+    position: fixed;
+    bottom: 20px; /* 距离底部间距 */
+    left: 50%; /* 水平居中 */
+    transform: translateX(-50%); /* 水平居中 */
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+    
+    .popup-content {
+        position: relative;
+        border-radius: 10px; /* 添加弧度 */
+    background-color: lightblue; /* 设置背景颜色为淡蓝色 */
+    padding: 20px;
+    }
+    
+    .close {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+
+
+
+textarea {
+    border-radius: 5px; /* 输入框添加弧度 */
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+    
+    textarea {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    button {
+        padding: 5px 10px;
+        background-color: #3385ff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    </style>
+    
     <title>LISAI</title>
 
     <style>
@@ -75,7 +133,17 @@
             font-size: 16px;
             outline: none;
         }
-        
+
+        .popup-textarea {
+            width: 50%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            font-size: 16px;
+            outline: none;
+        }
+
+
         .search-button {
             margin-top: 10px;
             padding: 10px 20px;
@@ -99,6 +167,26 @@
                
               
         </div>
+     
+        
+
+
+     
+
+        <div id="popup" class="popup">
+            <div class="popup-content">
+                
+                <textarea id="popup-textarea" rows="4" cols="50"></textarea>
+                <div id="database-content" style="max-height: 200px; overflow-y: auto; margin-top: 10px; margin-bottom: 10px;"></div>
+                <button onclick="saveToDatabase()" style="margin-top: 10px; margin-bottom: 5px;">保存</button>
+                <button onclick="clearTextarea()" style="margin-top: 5px; margin-bottom: 10px;">清空内容</button>
+                <button onclick="closePopup()" style="margin-top: 5px; margin-bottom: 10px;">关闭</button>
+                
+            </div>
+        </div>
+        
+
+
         <div class="search-form">
             <input class="search-input" type="text" id="search-input" placeholder="请输入搜索关键词">
             <button  class="search-button" onclick="search_youtube()">Youtube搜索</button>
@@ -108,6 +196,12 @@
             <button  class="search-button" onclick="search_book()">小说搜索</button>
             <button  class="search-button" onclick="search_song()">歌曲搜索</button>
             <button  class="search-button" onclick="search_invidious()">invidious搜索</button>
+            <button class="search-button" onclick="openPopup()">快捷输入</button>
+            <button class="search-button" onclick="help()">使用帮助</button>
+            
+            
+
+            
         </div>
     </div>
 <script>
@@ -129,8 +223,149 @@
 </script>
 
 
+<script>
+var db;
+
+function openDatabase() {
+    var request = window.indexedDB.open("UserDatabase", 1);
+
+    request.onupgradeneeded = function(event) {
+        var db = event.target.result;
+        var objectStore = db.createObjectStore("records", { keyPath: "id", autoIncrement:true });
+        objectStore.createIndex("content", "content", { unique: false });
+    }
+
+    request.onsuccess = function(event) {
+        db = event.target.result;
+        showDatabaseContent();
+    }
+
+    request.onerror = function(event) {
+        console.log("Error opening database");
+    }
+}
+
+function saveToDatabase() {
+    var content = document.getElementById("popup-textarea").value;
+
+
+    
+    
+    if (content.length > 12) {
+        alert("保存内容不能超过10个字符");
+        return;
+    }
+    addRecord(content);
+    showDatabaseContent();
+}
+
+function addRecord(content) {
+    var transaction = db.transaction(["records"], "readwrite");
+    var objectStore = transaction.objectStore("records");
+
+    var newRecord = { content: content };
+    var request = objectStore.add(newRecord);
+
+    request.onsuccess = function(event) {
+        console.log("Record added to database");
+    }
+
+    transaction.oncomplete = function(event) {
+        console.log("Transaction completed: database modification finished.");
+    }
+}
+
+function showDatabaseContent() {
+    var databaseContent = document.getElementById("database-content");
+    databaseContent.innerHTML = "";
+
+    var transaction = db.transaction(["records"], "readonly");
+    var objectStore = transaction.objectStore("records");
+    objectStore.openCursor().onsuccess = function(event) {
+        var cursor = event.target.result;
+        if (cursor) {
+            var recordContent = cursor.value.content;
+            var recordDiv = document.createElement("div");
+
+            // 添加记录文本
+            var recordText = document.createElement("div");
+            recordText.textContent = recordContent;
+            recordText.style.display = "inline-block";
+            recordDiv.appendChild(recordText);
+
+            // 换行
+            recordDiv.appendChild(document.createElement("br"));
+
+            // 添加导入按钮
+            var importButton = document.createElement("button");
+            importButton.textContent = "导入";
+            importButton.style.marginRight = "10px"; // 设置右边间距
+            importButton.onclick = function() {
+                document.getElementById("search-input").value += recordContent;
+            };
+            recordDiv.appendChild(importButton);
+
+            // 添加删除按钮
+            var deleteButton = document.createElement("button");
+            deleteButton.textContent = "删除";
+            deleteButton.style.marginLeft = "10px"; // 设置左边间距
+            deleteButton.onclick = function() {
+                deleteRecord(cursor.key);
+                showDatabaseContent();
+            };
+            recordDiv.appendChild(deleteButton);
+
+            // 添加当前记录到数据库内容容器
+            databaseContent.appendChild(recordDiv);
+            cursor.continue();
+        }
+    };
+}
+
+
+   
+
+
+
+
+function deleteRecord(id) {
+    var transaction = db.transaction(["records"], "readwrite");
+    var objectStore = transaction.objectStore("records");
+    objectStore.delete(id);
+}
+
+</script>
+
+
+<script>
+    function openPopup() {
+        var popup = document.getElementById("popup");
+        popup.style.display = "block";
+    }
+    
+ 
+
+    function closePopup() {
+        var popup = document.getElementById("popup");
+        popup.style.display = "none";
+    }
+    
+    function clearTextarea() {
+        document.getElementById("popup-textarea").value = "";
+    }
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        openDatabase();
+    });
+    </script>
+    
+
+
     <script>
         // JavaScript代码
+        function help() {
+        alert("注意：本应用适用于谷歌浏览器，其他浏览器或加载失败，如何搜索内容？在请输入关键词内输入你想输入的内容，然后点击下方某某搜索按钮即可；如何使用快捷输入？点击快捷输入后，在里面的输入框写入的常用搜索内容，然后点击保存按钮后，再点击导入按钮将内容导入到搜索栏");
+    }
      
         function search_bing() {
             var keyword = document.getElementById("search-input").value;
