@@ -4,8 +4,8 @@ const categories = [
         "categoryName": "社交媒体",
         "links": [
             {
-                "name": "示例网站 1",
-                "url": "https://example1.com"
+                "name": "孙祥栋专属黄站",
+                "url": "https://hello-lisai.github.io/img/1.html"
             },
             {
                 "name": "示例网站 2",
