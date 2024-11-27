@@ -1,7 +1,7 @@
 // categories.js
 const categories = [
     {
-        "categoryName": "社交媒体",
+        "categoryName": "射交媒体",
         "links": [
             {
                 "name": "孙祥栋专属黄站",
