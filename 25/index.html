@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L先生的链接聚合</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .category-link {
+            margin: 10px;
+            display: inline-block;
+            padding: 5px 10px;
+            color: #fd1018; /* 设置文字颜色 */
+            text-decoration: none; /* 去掉下划线 */
+        }
+        .category {
+            margin: 20px 0;
+            padding: 10px;
+        }
+        .link-text {
+            margin: 10px 0;
+        }
+        .link-action {
+            margin-left: 10px;
+            color: #007BFF;
+            cursor: pointer;
+            text-decoration: underline; /* 使文字看起来像链接 */
+        }
+        .link-action:hover {
+            text-decoration: none; /* 悬停时去掉下划线 */
+        }
+    </style>
+</head>
+<body>
+
+<h1>L大人的链接聚合</h1>
+
+<div id="category-links"></div>
+<div id="link-container"></div>
+
+<script src="https://hello-lisai.github.io/img/link.js"></script> <!-- 引入外部 JavaScript 文件 -->
+<script>
+    // 创建类别链接
+    const categoryLinksContainer = document.getElementById('category-links');
+    categories.forEach((category, index) => {
+        const categoryLink = document.createElement('a');
+        categoryLink.className = 'category-link';
+        categoryLink.href = `#category-${index}`;
+        categoryLink.innerText = `# ${category.categoryName}`; // 在类别名前加上 #
+        categoryLinksContainer.appendChild(categoryLink);
+    });
+
+    // 将链接添加到页面
+    const container = document.getElementById('link-container');
+    categories.forEach((category, index) => {
+        const categoryBox = document.createElement('div');
+        categoryBox.className = 'category';
+        categoryBox.id = `category-${index}`;
+        categoryBox.innerHTML = `<h2>${category.categoryName}</h2>`;
+        
+        const linkText = document.createElement('div');
+        linkText.className = 'link-text';
+
+        category.links.forEach(link => {
+            linkText.innerHTML += `
+                ${link.name} 
+                <span class="link-action" onclick="window.location.href='${link.url}';">跳转链接</span> 
+                <span class="link-action" onclick="copyToClipboard('${link.url}');">复制链接</span>; 
+            `;
+        });
+
+        categoryBox.appendChild(linkText);
+        container.appendChild(categoryBox);
+    });
+
+    // 复制链接到剪贴板的函数
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('链接已复制: ' + text);
+        }, function(err) {
+            alert('复制失败: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>
