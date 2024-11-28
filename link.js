@@ -1,37 +1,37 @@
 // categories.js
 const categories = [
     {
-        "categoryName": "射交媒体",
+        "categoryName": "漫画类",
         "links": [
             {
                 "name": "漫画站",
                 "url": "https://www.colamanga.com/"
             },
             {
-                "name": "示例网站 2",
-                "url": "https://example2.com"
+                "name": "说明",
+                "url": "注意虚假广告"
             }
         ]
     },
     {
-        "categoryName": "学习资源",
+        "categoryName": "小说类",
         "links": [
             {
-                "name": "示例网站 3",
-                "url": "https://example3.com"
+                "name": "全本",
+                "url": "https://www.qbmfxs.com/"
             },
             {
-                "name": "示例网站 4",
-                "url": "https://example4.com"
+                "name": "注意",
+                "url": "注意虚假广告"
             }
         ]
     },
     {
-        "categoryName": "娱乐",
+        "categoryName": "短剧类",
         "links": [
             {
-                "name": "示例网站 5",
-                "url": "https://example5.com"
+                "name": "看猫",
+                "url": "https://www.kanmaoyy.com/"
             }
         ]
     }
