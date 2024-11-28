@@ -4,7 +4,7 @@ const categories = [
         "categoryName": "射交媒体",
         "links": [
             {
-                "name": "孙祥栋专属黄站",
+                "name": "漫画站",
                 "url": "https://hello-lisai.github.io/img/1.html"
             },
             {
