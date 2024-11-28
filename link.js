@@ -30,8 +30,8 @@ const categories = [
         "categoryName": "短剧类",
         "links": [
             {
-                "name": "看猫",
-                "url": "https://www.kanmaoyy.com/"
+                "name": "短剧",
+                "url": "https://www.duanjuwang.cc/"
             }
         ]
     }
