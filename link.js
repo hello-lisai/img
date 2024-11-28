@@ -5,7 +5,7 @@ const categories = [
         "links": [
             {
                 "name": "漫画站",
-                "url": "https://hello-lisai.github.io/img/1.html"
+                "url": "https://www.colamanga.com/"
             },
             {
                 "name": "示例网站 2",
