@@ -8,8 +8,7 @@ const categories = [
                 "url": "https://www.colamanga.com/"
             },
             {
-                "name": "说明",
-                "url": "孙祥栋刚睡醒，一脸幂等，迷瞪脸"
+                "name": "说明"
             }
         ]
     },
