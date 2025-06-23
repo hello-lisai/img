@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Making Your First Phaser 3 Game with Joystick</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        body {
+            background: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #phaser-container {
+            width: 100%;
+            height: 100%;
+            max-width: 480px; /* 限制最大宽度，适配手机 */
+            max-height: 800px; /* 限制最大高度 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #phaser-game {
+            width: 480px;
+            height: 800px;
+        }
+        #version {
+            position: fixed;
+            left: 10px;
+            bottom: 10px;
+            z-index: 1001;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            text-shadow: 0 0 5px rgba(255, 255, 0.5);
+        }
+        .joystick-container {
+            position: fixed;
+            bottom: 20px; /* 距离底部 20px */
+            left: 50%; /* 居中 */
+            transform: translateX(-50%); /* 水平居中偏移 */
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="phaser-container"><div id="phaser-game"></div></div>
+    <footer><div id="version"></div></footer>
+
+    <script type="text/javascript">
+
+    var config = {
+        type: Phaser.AUTO,
+        width: 480, // 调整为竖屏宽度
+        height: 800, // 调整为竖屏高度
+        parent: 'phaser-game',
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 300 },
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        },
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            zoom: 1
+        }
+    };
+
+    var player;
+    var stars;
+    var bombs;
+    var platforms;
+    var cursors;
+    var joyStick;
+    var score = 0;
+    var gameOver = false;
+    var scoreText;
+
+    var game = new Phaser.Game(config);
+
+    function preload() {
+        this.load.image('sky', 'assets/sky.png');
+        this.load.image('ground', 'assets/platform.png');
+        this.load.image('star', 'assets/star.png');
+        this.load.image('bomb', 'assets/bomb.png');
+        this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+        
+        this.load.plugin('rexvirtualjoystickplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js', true);
+        
+        this.load.on('loaderror', function(file) {
+            console.error('Failed to load:', file.key);
+        });
+    }
+
+    function create() {
+        // 调整背景图位置以适应新画布大小
+        this.add.image(240, 400, 'sky').setDisplaySize(480, 800);
+
+        // 调整平台位置以适应竖屏
+        platforms = this.physics.add.staticGroup();
+        platforms.create(240, 768, 'ground').setScale(1.5).refreshBody(); // 主地面
+        platforms.create(360, 600, 'ground').setScale(0.8).refreshBody();
+        platforms.create(50, 450, 'ground').setScale(0.8).refreshBody();
+        platforms.create(430, 300, 'ground').setScale(0.8).refreshBody();
+
+        player = this.physics.add.sprite(100, 650, 'dude');
+        player.setBounce(0.2);
+        player.setCollideWorldBounds(true);
+
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'turn',
+            frames: [{ key: 'dude', frame: 4 }],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        cursors = this.input.keyboard.createCursorKeys();
+
+        // 创建虚拟摇杆，居中底部
+        var base = this.add.circle(0, 0, 50, 0x333333, 0.6)
+            .setStrokeStyle(2, 0xffffff, 0.8);
+        var thumb = this.add.circle(0, 0, 25, 0x00ffff, 0.9)
+            .setStrokeStyle(1, 0xffffff, 0.8);
+
+        thumb.setInteractive();
+        thumb.on('pointerdown', function() {
+            this.setScale(1.2);
+        });
+        thumb.on('pointerup', function() {
+            this.setScale(1.0);
+        });
+        thumb.on('pointerout', function() {
+            this.setScale(1.0);
+        });
+
+        // 摇杆位置：水平居中，距离底部 80px
+        var joystickX = 240; // 画布宽度的一半
+        var joystickY = this.scale.height - 80;
+
+        joyStick = this.plugins.get('rexvirtualjoystickplugin').add(this, {
+            x: joystickX,
+            y: joystickY,
+            radius: 50,
+            base: base,
+            thumb: thumb,
+            dir: '8dir',
+            forceMin: 10
+        });
+        console.log('Joystick created:', joyStick);
+
+        // 调整星星位置以适应新画布
+        stars = this.physics.add.group({
+            key: 'star',
+            repeat: 7, // 减少星星数量以适应较窄画布
+            setXY: { x: 30, y: 50, stepX: 60 }
+        });
+        stars.children.iterate(function(child) {
+            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+        });
+
+        bombs = this.physics.add.group();
+
+        scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '24px', fill: '#000' }); // 缩小字体
+
+        this.physics.add.collider(player, platforms);
+        this.physics.add.collider(stars, platforms);
+        this.physics.add.collider(bombs, platforms);
+        this.physics.add.overlap(player, stars, collectStar, null, this);
+        this.physics.add.collider(player, bombs, hitBomb, null, this);
+
+        document.getElementById('version').textContent = `Phaser v${Phaser.VERSION} | Joystick Active`;
+    }
+
+    function update() {
+        if (gameOver) {
+            return;
+        }
+
+        var joystickKeys = joyStick.createCursorKeys();
+        var joystickForce = joyStick.force;
+        var joystickAngle = joyStick.angle;
+
+        var velocityX = 0;
+        if (joystickKeys.left.isDown || cursors.left.isDown) {
+            velocityX = -160;
+            player.anims.play('left', true);
+        } else if (joystickKeys.right.isDown || cursors.right.isDown) {
+            velocityX = 160;
+            player.anims.play('right', true);
+        } else {
+            player.anims.play('turn');
+        }
+
+        if ((joystickKeys.up.isDown || cursors.up.isDown) && player.body.touching.down) {
+            player.setVelocityY(-330);
+        }
+
+        player.setVelocityX(velocityX);
+
+        if (joystickForce > 10 && player.body.touching.down) {
+            if (joystickAngle > -135 && joystickAngle < -45) {
+                player.setVelocityX(-160);
+                player.anims.play('left', true);
+            } else if (joystickAngle > 45 && joystickAngle < 135) {
+                player.setVelocityX(160);
+                player.anims.play('right', true);
+            }
+        }
+    }
+
+    function collectStar(player, star) {
+        star.disableBody(true, true);
+        score += 10;
+        scoreText.setText('Score: ' + score);
+
+        if (stars.countActive(true) === 0) {
+            stars.children.iterate(function(child) {
+                child.enableBody(true, child.x, 50, true, true); // 从顶部重置
+            });
+
+            var x = (player.x < 240) ? Phaser.Math.Between(240, 480) : Phaser.Math.Between(0, 240);
+            var bomb = bombs.create(x, 50, 'bomb');
+            bomb.setBounce(1);
+            bomb.setCollideWorldBounds(true);
+            bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+            bomb.allowGravity = false;
+        }
+    }
+
+    function hitBomb(player, bomb) {
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play('turn');
+        gameOver = true;
+    }
+
+    </script>
+</body>
+</html>
