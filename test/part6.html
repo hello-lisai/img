@@ -76,8 +76,8 @@
             physics: {
                 default: 'matter',
                 matter: {
-                    gravity: { y: 1 }, // Matter.js 使用不同的重力单位，调整为适合值
-                    debug: true // 启用调试，显示碰撞体
+                    gravity: { y: 1 },
+                    debug: true
                 }
             },
             scene: {
@@ -128,8 +128,8 @@
             // 设置世界边界
             this.matter.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
-            // 创建静态平台
-            platforms = this.matter.add.group();
+            // 创建静态平台组
+            platforms = this.add.group();
             platforms.add(this.matter.add.image(this.scale.width / 2, this.scale.height * 0.85, 'ground')
                 .setScale(1.5 * scaleX)
                 .setStatic(true));
@@ -148,19 +148,19 @@
             const centerY = this.scale.height * 0.18;
             rotatePlatform = this.matter.add.image(centerX, centerY, 'ground')
                 .setScale(0.8 * scaleX)
-                .setFriction(0.8) // 高摩擦力，防止滑落
-                .setMass(100); // 高质量，防止被玩家推动
-            rotatePlatform.setAngularVelocity(0.02); // 设置角速度，模拟风车旋转（正值为顺时针）
-            // 可选：若需绕一端旋转，取消注释以下行
-            // rotatePlatform.setOrigin(0, 0.5); // 设置原点为左端
+                .setFriction(0.8)
+                .setMass(100);
+            rotatePlatform.setAngularVelocity(0.02);
+            // 可选：绕一端旋转
+            // rotatePlatform.setOrigin(0, 0.5);
 
             // 创建玩家
             player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'dude')
                 .setScale(scaleX)
                 .setFriction(0.8)
                 .setBounce(0.2)
-                .setFixedRotation(); // 防止玩家旋转
-            player.setMass(1); // 玩家质量较小，易于控制
+                .setFixedRotation()
+                .setMass(1);
 
             // 动画
             this.anims.create({
@@ -206,7 +206,7 @@
             });
 
             // 创建星星
-            stars = this.matter.add.group();
+            stars = this.add.group();
             for (let i = 0; i < 8; i++) {
                 let star = this.matter.add.image(30 * scaleX + i * 60 * scaleX, 50 * scaleY, 'star')
                     .setScale(scaleX)
@@ -217,7 +217,7 @@
             }
 
             // 创建炸弹组
-            bombs = this.matter.add.group();
+            bombs = this.add.group();
 
             // 分数显示
             scoreText = this.add.text(16 * scaleX, this.scale.height * 0.82, 'Score: 0', { fontSize: `${24 * scaleX}px`, fill: '#000' });
@@ -269,10 +269,10 @@
             }
 
             if ((joystickKeys.up.isDown || cursors.up.isDown) && player.body.velocity.y === 0) {
-                player.setVelocityY(-330 * scaleX / 100); // 调整跳跃力度
+                player.setVelocityY(-330 * scaleX / 100);
             }
 
-            player.setVelocityX(velocityX / 100); // Matter.js 速度单位较小，需缩放
+            player.setVelocityX(velocityX / 100);
 
             if (joystickForce > 10 && player.body.velocity.y === 0) {
                 if (joystickAngle > -135 && joystickAngle < -45) {
@@ -315,7 +315,7 @@
         }
 
         function hitBomb(player, bomb) {
-            this.matter.world.enabled = false; // 暂停物理模拟
+            this.matter.world.enabled = false;
             player.setTint(0xff0000);
             player.anims.play('turn');
             gameOver = true;
