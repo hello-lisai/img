@@ -57,6 +57,9 @@ var stars;
 var bombs;
 var platforms;
 var rotatePlatform;
+var rightPlatform; // 新增右侧平台引用
+var rightPlatformSpeed = 2; // 右侧平台移动速度
+var rightPlatformDir = 1; // 右侧平台移动方向
 var cursors;
 var joyStick;
 var score = 0;
@@ -91,14 +94,19 @@ function create() {
     // 世界边界
     this.matter.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
-    // 平台
+    // 平台组
     platforms = this.add.group();
+
+    // 底部平台
     platforms.add(this.matter.add.image(this.scale.width / 2, this.scale.height * 0.85, 'ground')
         .setScale(1.5 * scaleX)
         .setStatic(true));
-    platforms.add(this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
-        .setScale(0.8 * scaleX)
-        .setStatic(true));
+
+    // 右侧平台（缩短且可移动）
+    rightPlatform = this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
+        .setScale(0.4 * scaleX, 1) // 更短
+        .setStatic(true);
+    platforms.add(rightPlatform);
 
     // 旋转平台
     const centerX = this.scale.width / 2;
@@ -119,6 +127,11 @@ function create() {
         .setBounce(0.2)
         .setFixedRotation()
         .setMass(1);
+    player.setBody({
+        type: 'rectangle',
+        width: 32 * scaleX,
+        height: 48 * 0.65 * scaleX // 高度为65%
+    });
 
     // 动画
     this.anims.create({ key: 'left', frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
@@ -248,13 +261,13 @@ function dropObject() {
             .setMass(0.5);
         bombs.add(bomb);
 
-        // 15秒后销毁，前1秒变红
-        let destroyTimer = this.time.delayedCall(15000, () => {
+        // 8秒后销毁，前1秒变红
+        let destroyTimer = this.time.delayedCall(8000, () => {
             if (bomb && bomb.body && !bomb.touched) {
                 bomb.destroy();
             }
         });
-        let redTimer = this.time.delayedCall(14000, () => {
+        let redTimer = this.time.delayedCall(7000, () => {
             if (bomb && bomb.body && !bomb.touched) {
                 bomb.setTint(0xff0000);
             }
@@ -272,6 +285,18 @@ function update() {
     // 让旋转平台一直自转
     if (rotatePlatform && rotatePlatform.body) {
         rotatePlatform.setAngularVelocity(ROTATE_SPEED);
+    }
+
+    // 右侧平台自动左右移动
+    if (rightPlatform && rightPlatform.body) {
+        let minX = rightPlatform.displayWidth / 2;
+        let maxX = this.scale.width - rightPlatform.displayWidth / 2;
+        let curX = rightPlatform.x + rightPlatformSpeed * rightPlatformDir;
+        if (curX <= minX || curX >= maxX) {
+            rightPlatformDir *= -1;
+            curX = Phaser.Math.Clamp(curX, minX, maxX);
+        }
+        rightPlatform.setPosition(curX, rightPlatform.y);
     }
 
     var joystickKeys = joyStick.createCursorKeys();
@@ -355,7 +380,7 @@ function collectStar(player, star) {
     player.setBody({
         type: 'rectangle',
         width: 32 * newScale,
-        height: 48 * newScale
+        height: 48 * 0.65 * newScale // 高度为65%
     });
     player.setFixedRotation();
     player.setPosition(oldX, oldY);
