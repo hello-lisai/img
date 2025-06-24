@@ -57,9 +57,9 @@ var stars;
 var bombs;
 var platforms;
 var rotatePlatform;
-var rightPlatform; // 新增右侧平台引用
-var rightPlatformSpeed = 2; // 右侧平台移动速度
-var rightPlatformDir = 1; // 右侧平台移动方向
+var rightPlatform;
+var rightPlatformSpeed = 2;
+var rightPlatformDir = 1;
 var cursors;
 var joyStick;
 var score = 0;
@@ -69,10 +69,21 @@ var timerText;
 var gameTimer = 0;
 var timerEvent = null;
 
-var dropTimer = null; // 控制降落物体的定时器
-var fallingObjects = []; // 记录所有降落的物体，用于销毁和变色
+var dropTimer = null;
+var fallingObjects = [];
 
 var game = new Phaser.Game(config);
+
+function setPlayerRectangleHeightKeepBottom(player, scale) {
+    // 以底边为准，碰撞体高度为原来65%，向下偏移保证脚贴地
+    // 原始宽高
+    const baseW = 32, baseH = 48;
+    const w = baseW * scale;
+    const h = baseH * 0.65 * scale;
+    const offsetY = (baseH * scale - h) / 2; // 只往下偏移
+    player.setRectangle(w, h, undefined, 0, offsetY);
+    player.setFixedRotation();
+}
 
 function preload() {
     this.load.image('sky', 'assets/sky.png');
@@ -128,18 +139,7 @@ function create() {
         .setFixedRotation()
         .setMass(1);
 
-    // 设置碰撞体（矮65%，底部不变）
-    let playerWidth = 32 * scaleX;
-    let playerHeight = 48 * 0.65 * scaleX;
-    let originalHeight = 48 * scaleX;
-    let offsetY = (originalHeight - playerHeight) / 2;
-    player.setBody({
-        type: 'rectangle',
-        width: playerWidth,
-        height: playerHeight
-    });
-    player.setFixedRotation();
-    player.setPosition(player.x, player.y + offsetY);
+    setPlayerRectangleHeightKeepBottom(player, scaleX);
 
     // 动画
     this.anims.create({ key: 'left', frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
@@ -230,7 +230,6 @@ function dropObject() {
     const worldWidth = this.scale.width;
     const dropX = Phaser.Math.Between(40 * scaleX, worldWidth - 40 * scaleX);
 
-    // 50%概率掉星星，50%掉炸弹
     let dropType = Math.random() < 0.5 ? 'star' : 'bomb';
 
     if (dropType === 'star') {
@@ -244,20 +243,17 @@ function dropObject() {
         star.isBigStar = isBig;
         stars.add(star);
 
-        // 6秒后销毁，前1秒变红
         let destroyTimer = this.time.delayedCall(6000, () => {
             if (star && star.body && !star.collected) {
                 star.destroy();
             }
         });
-        // 5秒后变红
         let redTimer = this.time.delayedCall(5000, () => {
             if (star && star.body && !star.collected) {
                 star.setTint(0xff0000);
             }
         });
 
-        // 存储引用，用于游戏结束统一销毁
         fallingObjects.push({ obj: star, timers: [destroyTimer, redTimer] });
 
     } else {
@@ -269,7 +265,6 @@ function dropObject() {
             .setMass(0.5);
         bombs.add(bomb);
 
-        // 8秒后销毁，前1秒变红
         let destroyTimer = this.time.delayedCall(8000, () => {
             if (bomb && bomb.body && !bomb.touched) {
                 bomb.destroy();
@@ -361,18 +356,14 @@ function update() {
 }
 
 function collectStar(player, star) {
-    // 防止多次收集同一个星星
     if (star.collected) return;
     star.collected = true;
-
-    // 立即销毁所有相关定时器
     removeFallingObject(star);
 
     star.destroy();
     score += 10;
     scoreText.setText('Score: ' + score);
 
-    // 记录当前位置和速度
     let oldX = player.x;
     let oldY = player.y;
     let oldVelocity = { x: player.body.velocity.x, y: player.body.velocity.y };
@@ -387,26 +378,14 @@ function collectStar(player, star) {
 
     player.setScale(newScale);
 
-    // 重新设置碰撞体并恢复脚底对齐
-    let bodyWidth = 32 * newScale;
-    let bodyHeight = 48 * 0.65 * newScale;
-    let origHeight = 48 * newScale;
-    let offsetY = (origHeight - bodyHeight) / 2;
-
-    player.setBody({
-        type: 'rectangle',
-        width: bodyWidth,
-        height: bodyHeight
-    });
-    player.setFixedRotation();
-    player.setPosition(oldX, oldY + offsetY);
+    setPlayerRectangleHeightKeepBottom(player, newScale);
+    player.setPosition(oldX, oldY);
     player.setVelocity(oldVelocity.x, oldVelocity.y);
 }
 
 function hitBomb(player, bomb) {
     if (gameOver) return;
     bomb.touched = true;
-    // 立即销毁所有相关定时器
     removeFallingObject(bomb);
 
     this.matter.world.enabled = false;
@@ -414,12 +393,9 @@ function hitBomb(player, bomb) {
     player.anims.play('turn');
     gameOver = true;
 
-    // 停止计时
     if (timerEvent) timerEvent.paused = true;
-    // 停止掉落
     if (dropTimer) dropTimer.paused = true;
 
-    // 销毁所有未收集的星星和未触碰的炸弹的定时器，防止内存泄漏
     fallingObjects.forEach(item => {
         if (item.obj && item.obj.body) {
             item.timers.forEach(timer => timer.remove(false));
@@ -435,7 +411,6 @@ function hitBomb(player, bomb) {
 }
 
 function removeFallingObject(obj) {
-    // 找到并移除obj对应的定时器
     for (let i = 0; i < fallingObjects.length; i++) {
         if (fallingObjects[i].obj === obj) {
             fallingObjects[i].timers.forEach(timer => timer.remove(false));
