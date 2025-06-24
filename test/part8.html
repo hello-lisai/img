@@ -79,8 +79,8 @@ function setPlayerRectangleHeightKeepBottom(player, scale) {
     // 原始宽高
     const baseW = 32, baseH = 48;
     const w = baseW * scale;
-    const h = baseH * 0.65 * scale;
-    const offsetY = (baseH * scale - h) / 2; // 只往下偏移
+    const h = baseH * scale;
+    const offsetY = 0; // 只往下偏移
     player.setRectangle(w, h, undefined, 0, offsetY);
     player.setFixedRotation();
 }
