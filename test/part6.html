@@ -150,7 +150,14 @@
                 .setScale(0.8 * scaleX)
                 .setFriction(0.8)
                 .setMass(100);
-            rotatePlatform.setAngularVelocity(0.02);
+            rotatePlatform.setAngularVelocity(0.02); // 顺时针旋转
+            // 添加约束，固定平台位置但允许旋转
+            this.matter.add.constraint(rotatePlatform, {
+                pointA: { x: centerX, y: centerY }, // 世界坐标固定点
+                pointB: { x: 0, y: 0 }, // 平台本地中心
+                stiffness: 1, // 约束刚性
+                length: 0 // 约束长度为 0，保持固定
+            });
             // 可选：绕一端旋转
             // rotatePlatform.setOrigin(0, 0.5);
 
