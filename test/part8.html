@@ -104,7 +104,7 @@ function create() {
 
     // 右侧平台（缩短且可移动）
     rightPlatform = this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
-        .setScale(0.4 * scaleX, 1) // 更短
+        .setScale(0.4 * scaleX, 1)
         .setStatic(true);
     platforms.add(rightPlatform);
 
@@ -127,11 +127,19 @@ function create() {
         .setBounce(0.2)
         .setFixedRotation()
         .setMass(1);
+
+    // 设置碰撞体（矮65%，底部不变）
+    let playerWidth = 32 * scaleX;
+    let playerHeight = 48 * 0.65 * scaleX;
+    let originalHeight = 48 * scaleX;
+    let offsetY = (originalHeight - playerHeight) / 2;
     player.setBody({
         type: 'rectangle',
-        width: 32 * scaleX,
-        height: 48 * 0.65 * scaleX // 高度为65%
+        width: playerWidth,
+        height: playerHeight
     });
+    player.setFixedRotation();
+    player.setPosition(player.x, player.y + offsetY);
 
     // 动画
     this.anims.create({ key: 'left', frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
@@ -333,6 +341,9 @@ function update() {
         }
     }
 
+    // 保持玩家始终直立
+    player.setRotation(0);
+
     // 炸弹持续弹跳
     bombs.children.iterate((bomb) => {
         if (bomb && bomb.body && !bomb.touched) {
@@ -376,14 +387,19 @@ function collectStar(player, star) {
 
     player.setScale(newScale);
 
-    // 重新设置碰撞体并恢复位置和速度，保持直立
+    // 重新设置碰撞体并恢复脚底对齐
+    let bodyWidth = 32 * newScale;
+    let bodyHeight = 48 * 0.65 * newScale;
+    let origHeight = 48 * newScale;
+    let offsetY = (origHeight - bodyHeight) / 2;
+
     player.setBody({
         type: 'rectangle',
-        width: 32 * newScale,
-        height: 48 * 0.65 * newScale // 高度为65%
+        width: bodyWidth,
+        height: bodyHeight
     });
     player.setFixedRotation();
-    player.setPosition(oldX, oldY);
+    player.setPosition(oldX, oldY + offsetY);
     player.setVelocity(oldVelocity.x, oldVelocity.y);
 }
 
