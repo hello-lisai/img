@@ -1,143 +1,419 @@
-<!doctype html> 
-<html lang="en"> 
-<head> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8" />
-    <title>Making your first Phaser 3 Game - Part 8</title>
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Phaser 3 Matter 超级弹跳旋转平台游戏</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
     <style type="text/css">
-        body {
-            margin: 0;
-        }
+        html, body { height: 100vh; margin: 0; padding: 0; overflow: hidden; touch-action: manipulation;}
+        body { background: #1a1a1a; color: #fff; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; justify-content: center; align-items: center;}
+        #phaser-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center;}
+        #phaser-game { width: 100%; height: 100%;}
+        #version { position: fixed; left: 10px; bottom: 10px; z-index: 1001; padding: 5px 10px; background: rgba(0,0,0,0.7); border-radius: 5px; text-shadow: 0 0 5px rgba(255,255,0.5);}
     </style>
 </head>
 <body>
-
+<div id="phaser-container"><div id="phaser-game"></div></div>
+<footer><div id="version"></div></footer>
 <script type="text/javascript">
+const baseWidth = 480;
+const baseHeight = 800;
+const aspectRatio = baseWidth / baseHeight;
+let gameWidth = window.innerWidth;
+let gameHeight = window.innerHeight;
 
-    var config = {
-        type: Phaser.AUTO,
-        width: 800,
-        height: 600,
-        physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: { y: 300 },
-                debug: false
+if (gameWidth / gameHeight > aspectRatio) {
+    gameWidth = gameHeight * aspectRatio;
+} else {
+    gameHeight = gameWidth / aspectRatio;
+}
+
+var config = {
+    type: Phaser.AUTO,
+    width: gameWidth,
+    height: gameHeight,
+    parent: 'phaser-game',
+    physics: {
+        default: 'matter',
+        matter: {
+            gravity: { y: 1 },
+            debug: true
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    },
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    }
+};
+
+var player;
+var stars;
+var bombs;
+var platforms;
+var rotatePlatform;
+var cursors;
+var joyStick;
+var score = 0;
+var gameOver = false;
+var scoreText;
+var timerText;
+var gameTimer = 0;
+var timerEvent = null;
+
+var dropTimer = null; // 控制降落物体的定时器
+var fallingObjects = []; // 记录所有降落的物体，用于销毁和变色
+
+var game = new Phaser.Game(config);
+
+function preload() {
+    this.load.image('sky', 'assets/sky.png');
+    this.load.image('ground', 'assets/platform.png');
+    this.load.image('star', 'assets/star.png');
+    this.load.image('bomb', 'assets/bomb.png');
+    this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    this.load.plugin('rexvirtualjoystickplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js', true);
+    this.load.on('loaderror', function(file) { console.error('Failed to load:', file.key); });
+}
+
+function create() {
+    const scaleX = this.scale.width / baseWidth;
+    const scaleY = this.scale.height / baseHeight;
+
+    // 背景
+    this.add.image(this.scale.width / 2, this.scale.height / 2, 'sky').setDisplaySize(this.scale.width, this.scale.height);
+
+    // 世界边界
+    this.matter.world.setBounds(0, 0, this.scale.width, this.scale.height);
+
+    // 平台
+    platforms = this.add.group();
+    platforms.add(this.matter.add.image(this.scale.width / 2, this.scale.height * 0.85, 'ground')
+        .setScale(1.5 * scaleX)
+        .setStatic(true));
+    platforms.add(this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
+        .setScale(0.8 * scaleX)
+        .setStatic(true));
+
+    // 旋转平台
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height * 0.27;
+    rotatePlatform = this.matter.add.image(centerX, centerY, 'ground')
+        .setScale(0.4 * scaleX)
+        .setFriction(0.8)
+        .setMass(100);
+    this.matter.add.worldConstraint(rotatePlatform.body, 0, 1, {
+        pointA: { x: centerX, y: centerY },
+        pointB: { x: 0, y: 0 }
+    });
+
+    // 玩家
+    player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'dude')
+        .setScale(scaleX)
+        .setFriction(0.8)
+        .setBounce(0.2)
+        .setFixedRotation()
+        .setMass(1);
+
+    // 动画
+    this.anims.create({ key: 'left', frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }), frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'turn', frames: [{ key: 'dude', frame: 4 }], frameRate: 20 });
+    this.anims.create({ key: 'right', frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }), frameRate: 10, repeat: -1 });
+
+    cursors = this.input.keyboard.createCursorKeys();
+
+    // 虚拟摇杆
+    var base = this.add.circle(0, 0, 50 * scaleX, 0x333333, 0.6).setStrokeStyle(2, 0xffffff, 0.8);
+    var thumb = this.add.circle(0, 0, 25 * scaleX, 0x00ffff, 0.9).setStrokeStyle(1, 0xffffff, 0.8);
+    thumb.setInteractive();
+    thumb.on('pointerdown', function() { this.setScale(1.2); });
+    thumb.on('pointerup', function() { this.setScale(1.0); });
+    thumb.on('pointerout', function() { this.setScale(1.0); });
+    var joystickX = this.scale.width / 2;
+    var joystickY = this.scale.height - (80 * scaleY);
+    joyStick = this.plugins.get('rexvirtualjoystickplugin').add(this, {
+        x: joystickX,
+        y: joystickY,
+        radius: 50 * scaleX,
+        base: base,
+        thumb: thumb,
+        dir: '8dir',
+        forceMin: 10
+    });
+
+    // 星星和炸弹组
+    stars = this.add.group();
+    bombs = this.add.group();
+
+    // 分数UI
+    scoreText = this.add.text(16 * scaleX, this.scale.height * 0.82, 'Score: 0', { fontSize: `${24 * scaleX}px`, fill: '#000' });
+
+    // 存活时间UI
+    timerText = this.add.text(this.scale.width - 150 * scaleX, this.scale.height * 0.82, 'Time: 0.0s', { fontSize: `${24 * scaleX}px`, fill: '#000' });
+
+    // 碰撞事件
+    this.matter.world.on('collisionstart', (event) => {
+        event.pairs.forEach((pair) => {
+            let bodyA = pair.bodyA;
+            let bodyB = pair.bodyB;
+            // 玩家与星星
+            if ((bodyA === player.body && stars.contains(bodyB.gameObject)) ||
+                (bodyB === player.body && stars.contains(bodyA.gameObject))) {
+                let star = bodyA === player.body ? bodyB.gameObject : bodyA.gameObject;
+                collectStar.call(this, player, star);
             }
-        },
-        scene: {
-            preload: preload,
-            create: create,
-            update: update
+            // 玩家与炸弹
+            if ((bodyA === player.body && bombs.contains(bodyB.gameObject)) ||
+                (bodyB === player.body && bombs.contains(bodyA.gameObject))) {
+                let bomb = bodyA === player.body ? bodyB.gameObject : bodyA.gameObject;
+                hitBomb.call(this, player, bomb);
+            }
+        });
+    });
+
+    document.getElementById('version').textContent = `Phaser v${Phaser.VERSION} | Joystick Active | Matter.js`;
+
+    // 启动存活计时
+    gameTimer = 0;
+    timerEvent = this.time.addEvent({
+        delay: 100, // 0.1秒刷新
+        loop: true,
+        callback: () => {
+            if (!gameOver) {
+                gameTimer += 0.1;
+                timerText.setText('Time: ' + gameTimer.toFixed(1) + 's');
+            }
         }
-    };
+    });
 
-    var player;
-    var stars;
-    var platforms;
-    var cursors;
+    // 启动降落物体的定时器
+    dropTimer = this.time.addEvent({
+        delay: 2000, // 每2秒降落一个
+        loop: true,
+        callback: () => {
+            if (gameOver) return;
+            dropObject.call(this);
+        }
+    });
+}
 
-    var game = new Phaser.Game(config);
+// 随机掉落星星或炸弹
+function dropObject() {
+    const scaleX = this.scale.width / baseWidth;
+    const scaleY = this.scale.height / baseHeight;
+    const worldWidth = this.scale.width;
+    const dropX = Phaser.Math.Between(40 * scaleX, worldWidth - 40 * scaleX);
 
-    function preload ()
-    {
-        this.load.image('sky', 'assets/sky.png');
-        this.load.image('ground', 'assets/platform.png');
-        this.load.image('star', 'assets/star.png');
-        this.load.image('bomb', 'assets/bomb.png');
-        this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    // 50%概率掉星星，50%掉炸弹
+    let dropType = Math.random() < 0.5 ? 'star' : 'bomb';
+
+    if (dropType === 'star') {
+        let isBig = Math.random() < 0.5;
+        let starScale = isBig ? 1.2 * scaleX : 0.6 * scaleX;
+        let star = this.matter.add.image(dropX, 0, 'star')
+            .setScale(starScale)
+            .setFriction(0.5)
+            .setBounce(Phaser.Math.FloatBetween(0.4, 0.8))
+            .setMass(isBig ? 0.2 : 0.08);
+        star.isBigStar = isBig;
+        stars.add(star);
+
+        // 6秒后销毁，前1秒变红
+        let destroyTimer = this.time.delayedCall(6000, () => {
+            if (star && star.body && !star.collected) {
+                star.destroy();
+            }
+        });
+        // 5秒后变红
+        let redTimer = this.time.delayedCall(5000, () => {
+            if (star && star.body && !star.collected) {
+                star.setTint(0xff0000);
+            }
+        });
+
+        // 存储引用，用于游戏结束统一销毁
+        fallingObjects.push({ obj: star, timers: [destroyTimer, redTimer] });
+
+    } else {
+        let bomb = this.matter.add.image(dropX, 0, 'bomb')
+            .setScale(scaleX)
+            .setFriction(0)
+            .setFrictionAir(0)
+            .setBounce(1.2)
+            .setMass(0.5);
+        bombs.add(bomb);
+
+        // 15秒后销毁，前1秒变红
+        let destroyTimer = this.time.delayedCall(15000, () => {
+            if (bomb && bomb.body && !bomb.touched) {
+                bomb.destroy();
+            }
+        });
+        let redTimer = this.time.delayedCall(14000, () => {
+            if (bomb && bomb.body && !bomb.touched) {
+                bomb.setTint(0xff0000);
+            }
+        });
+
+        fallingObjects.push({ obj: bomb, timers: [destroyTimer, redTimer] });
+    }
+}
+
+const ROTATE_SPEED = 0.05;
+
+function update() {
+    if (gameOver) return;
+
+    // 让旋转平台一直自转
+    if (rotatePlatform && rotatePlatform.body) {
+        rotatePlatform.setAngularVelocity(ROTATE_SPEED);
     }
 
-    function create ()
-    {
-        this.add.image(400, 300, 'sky');
+    var joystickKeys = joyStick.createCursorKeys();
+    var joystickForce = joyStick.force;
+    var joystickAngle = joyStick.angle;
+    const scaleX = this.scale.width / baseWidth;
 
-        platforms = this.physics.add.staticGroup();
-
-        platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-
-        platforms.create(600, 400, 'ground');
-        platforms.create(50, 250, 'ground');
-        platforms.create(750, 220, 'ground');
-
-        player = this.physics.add.sprite(100, 450, 'dude');
-
-        player.setBounce(0.2);
-        player.setCollideWorldBounds(true);
-
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'turn',
-            frames: [ { key: 'dude', frame: 4 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        cursors = this.input.keyboard.createCursorKeys();
-
-        stars = this.physics.add.group({
-            key: 'star',
-            repeat: 11,
-            setXY: { x: 12, y: 0, stepX: 70 }
-        });
-
-        stars.children.iterate(function (child) {
-
-            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-        });
-
-        this.physics.add.collider(player, platforms);
-        this.physics.add.collider(stars, platforms);
-
-        this.physics.add.overlap(player, stars, collectStar, null, this);
+    // 玩家控制
+    let velocityX = 0;
+    if (joystickKeys.left.isDown || cursors.left.isDown) {
+        velocityX = -160 * scaleX;
+        player.anims.play('left', true);
+    } else if (joystickKeys.right.isDown || cursors.right.isDown) {
+        velocityX = 160 * scaleX;
+        player.anims.play('right', true);
+    } else {
+        player.anims.play('turn');
     }
 
-    function update ()
-    {
-        if (cursors.left.isDown)
-        {
-            player.setVelocityX(-160);
+    // 跳跃
+    if ((joystickKeys.up.isDown || cursors.up.isDown) && Math.abs(player.body.velocity.y) < 0.01) {
+        player.setVelocityY(-10);
+    }
 
+    player.setVelocityX(velocityX / 100);
+
+    if (joystickForce > 10 && Math.abs(player.body.velocity.y) < 0.01) {
+        if (joystickAngle > -135 && joystickAngle < -45) {
+            player.setVelocityX(-160 * scaleX / 100);
             player.anims.play('left', true);
-        }
-        else if (cursors.right.isDown)
-        {
-            player.setVelocityX(160);
-
+        } else if (joystickAngle > 45 && joystickAngle < 135) {
+            player.setVelocityX(160 * scaleX / 100);
             player.anims.play('right', true);
         }
-        else
-        {
-            player.setVelocityX(0);
-
-            player.anims.play('turn');
-        }
-
-        if (cursors.up.isDown && player.body.touching.down)
-        {
-            player.setVelocityY(-330);
-        }
     }
 
-    function collectStar (player, star)
-    {
-        star.disableBody(true, true);
+    // 炸弹持续弹跳
+    bombs.children.iterate((bomb) => {
+        if (bomb && bomb.body && !bomb.touched) {
+            const vx = bomb.body.velocity.x;
+            const vy = bomb.body.velocity.y;
+            if (Math.abs(vy) < 1) {
+                bomb.setVelocityY(-12 - Math.random()*5);
+            }
+            if (Math.abs(vx) < 1) {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                bomb.setVelocityX(dir * (3 + Math.random()*2));
+            }
+        }
+    });
+}
+
+function collectStar(player, star) {
+    // 防止多次收集同一个星星
+    if (star.collected) return;
+    star.collected = true;
+
+    // 立即销毁所有相关定时器
+    removeFallingObject(star);
+
+    star.destroy();
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    // 记录当前位置和速度
+    let oldX = player.x;
+    let oldY = player.y;
+    let oldVelocity = { x: player.body.velocity.x, y: player.body.velocity.y };
+    let oldScale = player.scale;
+    let newScale;
+
+    if (star.isBigStar) {
+        newScale = Math.min(oldScale + 0.2, 2.0);
+    } else {
+        newScale = Math.max(oldScale - 0.2, 0.5);
     }
 
+    player.setScale(newScale);
+
+    // 重新设置碰撞体并恢复位置和速度，保持直立
+    player.setBody({
+        type: 'rectangle',
+        width: 32 * newScale,
+        height: 48 * newScale
+    });
+    player.setFixedRotation();
+    player.setPosition(oldX, oldY);
+    player.setVelocity(oldVelocity.x, oldVelocity.y);
+}
+
+function hitBomb(player, bomb) {
+    if (gameOver) return;
+    bomb.touched = true;
+    // 立即销毁所有相关定时器
+    removeFallingObject(bomb);
+
+    this.matter.world.enabled = false;
+    player.setTint(0xff0000);
+    player.anims.play('turn');
+    gameOver = true;
+
+    // 停止计时
+    if (timerEvent) timerEvent.paused = true;
+    // 停止掉落
+    if (dropTimer) dropTimer.paused = true;
+
+    // 销毁所有未收集的星星和未触碰的炸弹的定时器，防止内存泄漏
+    fallingObjects.forEach(item => {
+        if (item.obj && item.obj.body) {
+            item.timers.forEach(timer => timer.remove(false));
+            if (item.obj.texture && item.obj.texture.key === 'star') {
+                item.obj.destroy();
+            }
+            if (item.obj.texture && item.obj.texture.key === 'bomb' && !item.obj.touched) {
+                item.obj.destroy();
+            }
+        }
+    });
+    fallingObjects.length = 0;
+}
+
+function removeFallingObject(obj) {
+    // 找到并移除obj对应的定时器
+    for (let i = 0; i < fallingObjects.length; i++) {
+        if (fallingObjects[i].obj === obj) {
+            fallingObjects[i].timers.forEach(timer => timer.remove(false));
+            fallingObjects.splice(i, 1);
+            break;
+        }
+    }
+}
+
+window.addEventListener('resize', () => {
+    let newWidth = window.innerWidth;
+    let newHeight = window.innerHeight;
+    if (newWidth / newHeight > aspectRatio) {
+        newWidth = newHeight * aspectRatio;
+    } else {
+        newHeight = newWidth / aspectRatio;
+    }
+    game.scale.resize(newWidth, newHeight);
+});
 </script>
-
 </body>
 </html>
