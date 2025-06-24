@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Making Your First Phaser 3 Game with Joystick</title>
+    <title>Making Your First Phaser 3 Game with Joystick (Matter.js)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
     <style type="text/css">
         html, body {
@@ -74,10 +74,10 @@
             height: gameHeight,
             parent: 'phaser-game',
             physics: {
-                default: 'arcade',
-                arcade: {
-                    gravity: { y: 300 },
-                    debug: true
+                default: 'matter',
+                matter: {
+                    gravity: { y: 1 }, // Matter.js 使用不同的重力单位，调整为适合值
+                    debug: true // 启用调试，显示碰撞体
                 }
             },
             scene: {
@@ -96,9 +96,6 @@
         var bombs;
         var platforms;
         var rotatePlatform;
-        var rotatePlatformAngle = 0;
-        var centerX, centerY;
-        var rotationRadius;
         var cursors;
         var joyStick;
         var score = 0;
@@ -125,33 +122,47 @@
             const scaleX = this.scale.width / baseWidth;
             const scaleY = this.scale.height / baseHeight;
 
+            // 背景
             this.add.image(this.scale.width / 2, this.scale.height / 2, 'sky').setDisplaySize(this.scale.width, this.scale.height);
 
-            // 旋转平台参数
-            centerX = this.scale.width / 2;
-            centerY = this.scale.height * 0.18;
-            rotationRadius = this.scale.width * 0.1;
+            // 设置世界边界
+            this.matter.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
-            platforms = this.physics.add.staticGroup();
-            platforms.create(this.scale.width / 2, this.scale.height * 0.85, 'ground').setScale(1.5 * scaleX).refreshBody();
-            platforms.create(this.scale.width * 0.75, this.scale.height * 0.75, 'ground').setScale(0.8 * scaleX).refreshBody();
-            platforms.create(this.scale.width * 0.104, this.scale.height * 0.5625, 'ground').setScale(0.8 * scaleX).refreshBody();
-            platforms.create(this.scale.width * 0.896, this.scale.height * 0.375, 'ground').setScale(0.8 * scaleX).refreshBody();
-
-            // 创建旋转平台（动态物理对象）
-            rotatePlatform = this.physics.add.image(centerX + rotationRadius, centerY, 'ground')
+            // 创建静态平台
+            platforms = this.matter.add.group();
+            platforms.add(this.matter.add.image(this.scale.width / 2, this.scale.height * 0.85, 'ground')
+                .setScale(1.5 * scaleX)
+                .setStatic(true));
+            platforms.add(this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.75, 'ground')
                 .setScale(0.8 * scaleX)
-                .setImmovable(true)
-                .setFriction(1);
-            rotatePlatform.body.allowGravity = false;
-            rotatePlatform.body.setSize(rotatePlatform.width * 0.8, rotatePlatform.height * 0.8);
+                .setStatic(true));
+            platforms.add(this.matter.add.image(this.scale.width * 0.104, this.scale.height * 0.5625, 'ground')
+                .setScale(0.8 * scaleX)
+                .setStatic(true));
+            platforms.add(this.matter.add.image(this.scale.width * 0.896, this.scale.height * 0.375, 'ground')
+                .setScale(0.8 * scaleX)
+                .setStatic(true));
 
-            player = this.physics.add.sprite(100 * scaleX, this.scale.height * 0.7, 'dude');
-            player.setBounce(0.2);
-            player.setCollideWorldBounds(true);
-            player.setScale(scaleX);
-            player.setFriction(1);
+            // 创建旋转平台
+            const centerX = this.scale.width / 2;
+            const centerY = this.scale.height * 0.18;
+            rotatePlatform = this.matter.add.image(centerX, centerY, 'ground')
+                .setScale(0.8 * scaleX)
+                .setFriction(0.8) // 高摩擦力，防止滑落
+                .setMass(100); // 高质量，防止被玩家推动
+            rotatePlatform.setAngularVelocity(0.02); // 设置角速度，模拟风车旋转（正值为顺时针）
+            // 可选：若需绕一端旋转，取消注释以下行
+            // rotatePlatform.setOrigin(0, 0.5); // 设置原点为左端
 
+            // 创建玩家
+            player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'dude')
+                .setScale(scaleX)
+                .setFriction(0.8)
+                .setBounce(0.2)
+                .setFixedRotation(); // 防止玩家旋转
+            player.setMass(1); // 玩家质量较小，易于控制
+
+            // 动画
             this.anims.create({
                 key: 'left',
                 frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
@@ -172,6 +183,7 @@
 
             cursors = this.input.keyboard.createCursorKeys();
 
+            // 虚拟摇杆
             var base = this.add.circle(0, 0, 50 * scaleX, 0x333333, 0.6).setStrokeStyle(2, 0xffffff, 0.8);
             var thumb = this.add.circle(0, 0, 25 * scaleX, 0x00ffff, 0.9).setStrokeStyle(1, 0xffffff, 0.8);
 
@@ -193,44 +205,50 @@
                 forceMin: 10
             });
 
-            stars = this.physics.add.group({
-                key: 'star',
-                repeat: 7,
-                setXY: { x: 30 * scaleX, y: 50 * scaleY, stepX: 60 * scaleX }
-            });
-            stars.children.iterate(function(child) {
-                child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-                child.setScale(scaleX);
-            });
+            // 创建星星
+            stars = this.matter.add.group();
+            for (let i = 0; i < 8; i++) {
+                let star = this.matter.add.image(30 * scaleX + i * 60 * scaleX, 50 * scaleY, 'star')
+                    .setScale(scaleX)
+                    .setFriction(0.5)
+                    .setBounce(Phaser.Math.FloatBetween(0.4, 0.8))
+                    .setMass(0.1);
+                stars.add(star);
+            }
 
-            bombs = this.physics.add.group();
+            // 创建炸弹组
+            bombs = this.matter.add.group();
 
+            // 分数显示
             scoreText = this.add.text(16 * scaleX, this.scale.height * 0.82, 'Score: 0', { fontSize: `${24 * scaleX}px`, fill: '#000' });
 
-            this.physics.add.collider(player, platforms);
-            this.physics.add.collider(player, rotatePlatform);
-            this.physics.add.collider(stars, platforms);
-            this.physics.add.collider(stars, rotatePlatform);
-            this.physics.add.collider(bombs, platforms);
-            this.physics.add.collider(bombs, rotatePlatform);
-            this.physics.add.overlap(player, stars, collectStar, null, this);
-            this.physics.add.collider(player, bombs, hitBomb, null, this);
+            // 碰撞事件
+            this.matter.world.on('collisionstart', (event) => {
+                event.pairs.forEach((pair) => {
+                    let bodyA = pair.bodyA;
+                    let bodyB = pair.bodyB;
 
-            document.getElementById('version').textContent = `Phaser v${Phaser.VERSION} | Joystick Active`;
+                    // 玩家与星星碰撞
+                    if ((bodyA === player.body && stars.contains(bodyB.gameObject)) ||
+                        (bodyB === player.body && stars.contains(bodyA.gameObject))) {
+                        let star = bodyA === player.body ? bodyB.gameObject : bodyA.gameObject;
+                        collectStar.call(this, player, star);
+                    }
+
+                    // 玩家与炸弹碰撞
+                    if ((bodyA === player.body && bombs.contains(bodyB.gameObject)) ||
+                        (bodyB === player.body && bombs.contains(bodyA.gameObject))) {
+                        let bomb = bodyA === player.body ? bodyB.gameObject : bodyA.gameObject;
+                        hitBomb.call(this, player, bomb);
+                    }
+                });
+            });
+
+            document.getElementById('version').textContent = `Phaser v${Phaser.VERSION} | Joystick Active | Matter.js`;
         }
 
         function update() {
             if (gameOver) return;
-
-            // 模拟风车式旋转
-            const rotateSpeed = 0.02;
-            rotatePlatformAngle += rotateSpeed;
-            const rX = centerX + rotationRadius * Math.cos(rotatePlatformAngle);
-            const rY = centerY + rotationRadius * Math.sin(rotatePlatformAngle);
-            rotatePlatform.setPosition(rX, rY);
-            rotatePlatform.setAngle(Phaser.Math.RadToDeg(rotatePlatformAngle));
-            rotatePlatform.body.setSize(rotatePlatform.width * 0.8, rotatePlatform.height * 0.8);
-            rotatePlatform.body.reset(rX, rY);
 
             var joystickKeys = joyStick.createCursorKeys();
             var joystickForce = joyStick.force;
@@ -238,7 +256,8 @@
 
             const scaleX = this.scale.width / baseWidth;
 
-            var velocityX = 0;
+            // 玩家控制
+            let velocityX = 0;
             if (joystickKeys.left.isDown || cursors.left.isDown) {
                 velocityX = -160 * scaleX;
                 player.anims.play('left', true);
@@ -249,48 +268,54 @@
                 player.anims.play('turn');
             }
 
-            if ((joystickKeys.up.isDown || cursors.up.isDown) && player.body.touching.down) {
-                player.setVelocityY(-330 * scaleX);
+            if ((joystickKeys.up.isDown || cursors.up.isDown) && player.body.velocity.y === 0) {
+                player.setVelocityY(-330 * scaleX / 100); // 调整跳跃力度
             }
 
-            player.setVelocityX(velocityX);
+            player.setVelocityX(velocityX / 100); // Matter.js 速度单位较小，需缩放
 
-            if (joystickForce > 10 && player.body.touching.down) {
+            if (joystickForce > 10 && player.body.velocity.y === 0) {
                 if (joystickAngle > -135 && joystickAngle < -45) {
-                    player.setVelocityX(-160 * scaleX);
+                    player.setVelocityX(-160 * scaleX / 100);
                     player.anims.play('left', true);
                 } else if (joystickAngle > 45 && joystickAngle < 135) {
-                    player.setVelocityX(160 * scaleX);
+                    player.setVelocityX(160 * scaleX / 100);
                     player.anims.play('right', true);
                 }
             }
         }
 
         function collectStar(player, star) {
-            star.disableBody(true, true);
+            star.destroy();
             score += 10;
             scoreText.setText('Score: ' + score);
 
             const scaleX = this.scale.width / baseWidth;
             const scaleY = this.scale.height / baseHeight;
 
-            if (stars.countActive(true) === 0) {
-                stars.children.iterate(function(child) {
-                    child.enableBody(true, child.x, 50 * scaleY, true, true);
-                });
+            if (stars.getLength() === 0) {
+                for (let i = 0; i < 8; i++) {
+                    let newStar = this.matter.add.image(30 * scaleX + i * 60 * scaleX, 50 * scaleY, 'star')
+                        .setScale(scaleX)
+                        .setFriction(0.5)
+                        .setBounce(Phaser.Math.FloatBetween(0.4, 0.8))
+                        .setMass(0.1);
+                    stars.add(newStar);
+                }
 
-                var x = (player.x < this.scale.width / 2) ? Phaser.Math.Between(this.scale.width / 2, this.scale.width) : Phaser.Math.Between(0, this.scale.width / 2);
-                var bomb = bombs.create(x, 50 * scaleY, 'bomb');
-                bomb.setBounce(1);
-                bomb.setCollideWorldBounds(true);
-                bomb.setVelocity(Phaser.Math.Between(-200 * scaleX, 200 * scaleX), 20);
-                bomb.allowGravity = false;
-                bomb.setScale(scaleX);
+                let x = player.x < this.scale.width / 2 ? Phaser.Math.Between(this.scale.width / 2, this.scale.width) : Phaser.Math.Between(0, this.scale.width / 2);
+                let bomb = this.matter.add.image(x, 50 * scaleY, 'bomb')
+                    .setScale(scaleX)
+                    .setFriction(0.5)
+                    .setBounce(1)
+                    .setMass(0.5)
+                    .setVelocity(Phaser.Math.Between(-200 * scaleX / 100, 200 * scaleX / 100), 0.2);
+                bombs.add(bomb);
             }
         }
 
         function hitBomb(player, bomb) {
-            this.physics.pause();
+            this.matter.world.enabled = false; // 暂停物理模拟
             player.setTint(0xff0000);
             player.anims.play('turn');
             gameOver = true;
