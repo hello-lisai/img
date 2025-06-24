@@ -90,19 +90,18 @@ function create() {
     platforms.add(this.matter.add.image(this.scale.width / 2, this.scale.height * 0.85, 'ground')
         .setScale(1.5 * scaleX)
         .setStatic(true));
-    // 右边平台更高
-    platforms.add(this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.6, 'ground')
+    // 右边平台较低（0.7）
+    platforms.add(this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
         .setScale(0.8 * scaleX)
         .setStatic(true));
 
-    // 旋转平台（更小更低）
+    // 旋转平台
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height * 0.27;
     rotatePlatform = this.matter.add.image(centerX, centerY, 'ground')
         .setScale(0.4 * scaleX)
         .setFriction(0.8)
         .setMass(100);
-    // 约束平台中心
     this.matter.add.worldConstraint(rotatePlatform.body, 0, 1, {
         pointA: { x: centerX, y: centerY },
         pointB: { x: 0, y: 0 }
@@ -252,27 +251,34 @@ function collectStar(player, star) {
     score += 10;
     scoreText.setText('Score: ' + score);
 
-    const scaleX = this.scale.width / baseWidth;
-    const scaleY = this.scale.height / baseHeight;
-
-    // 角色缩放和刚体同步
-    let curScale = player.scale;
+    // 记录当前位置和速度
+    let oldX = player.x;
+    let oldY = player.y;
+    let oldVelocity = { x: player.body.velocity.x, y: player.body.velocity.y };
+    let oldScale = player.scale;
     let newScale;
+
     if (star.isBigStar) {
-        newScale = Math.min(curScale + 0.2, 2.0); // 最大2倍
+        newScale = Math.min(oldScale + 0.2, 2.0);
     } else {
-        newScale = Math.max(curScale - 0.2, 0.5); // 最小0.5倍
+        newScale = Math.max(oldScale - 0.2, 0.5);
     }
+
     player.setScale(newScale);
 
-    // 重新设置碰撞体（矩形），同步缩放
+    // 重新设置碰撞体并恢复位置和速度，保持直立
     player.setBody({
         type: 'rectangle',
         width: 32 * newScale,
         height: 48 * newScale
     });
+    player.setFixedRotation(); // 防止翻滚
+    player.setPosition(oldX, oldY);
+    player.setVelocity(oldVelocity.x, oldVelocity.y);
 
     if (stars.getLength() === 0) {
+        const scaleX = this.scale.width / baseWidth;
+        const scaleY = this.scale.height / baseHeight;
         for (let i = 0; i < 8; i++) {
             let isBig = Math.random() < 0.5;
             let starScale = isBig ? 1.2 * scaleX : 0.6 * scaleX;
