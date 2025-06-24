@@ -130,7 +130,7 @@
             // 旋转平台参数
             centerX = this.scale.width / 2;
             centerY = this.scale.height * 0.18;
-            rotationRadius = this.scale.width * 0.1; // 较短的半径，模拟风车叶片
+            rotationRadius = this.scale.width * 0.1;
 
             platforms = this.physics.add.staticGroup();
             platforms.create(this.scale.width / 2, this.scale.height * 0.85, 'ground').setScale(1.5 * scaleX).refreshBody();
@@ -151,13 +151,6 @@
             player.setCollideWorldBounds(true);
             player.setScale(scaleX);
             player.setFriction(1);
-            this.anims.create({
-                key: 'left',
-                frames: true;
-            });
-
-            player.setFriction(1);
-            player.setScale(scaleX);
 
             this.anims.create({
                 key: 'left',
@@ -230,14 +223,14 @@
             if (gameOver) return;
 
             // 模拟风车式旋转
-            const rotateSpeed = 0.02; // 弧度每帧，调整速度
+            const rotateSpeed = 0.02;
             rotatePlatformAngle += rotateSpeed;
             const rX = centerX + rotationRadius * Math.cos(rotatePlatformAngle);
             const rY = centerY + rotationRadius * Math.sin(rotatePlatformAngle);
             rotatePlatform.setPosition(rX, rY);
-            rotatePlatform.setAngle(Phaser.Math.RadToDeg(rotatePlatformAngle)); // 视觉旋转
-            rotatePlatform.body.setSize(rotatePlatform.width * 0.8, rotatePlatform.height * 0.8); // 确保碰撞体大小一致
-            rotatePlatform.body.reset(rX, rY); // 更新碰撞体位置
+            rotatePlatform.setAngle(Phaser.Math.RadToDeg(rotatePlatformAngle));
+            rotatePlatform.body.setSize(rotatePlatform.width * 0.8, rotatePlatform.height * 0.8);
+            rotatePlatform.body.reset(rX, rY);
 
             var joystickKeys = joyStick.createCursorKeys();
             var joystickForce = joyStick.force;
