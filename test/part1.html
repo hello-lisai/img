@@ -58,8 +58,9 @@ var bombs;
 var platforms;
 var rotatePlatform;
 var rightPlatform;
-var rightPlatformSpeed = 2;
+var rightPlatformSpeed = 2.5;
 var rightPlatformDir = 1;
+var rightPlatformMinX, rightPlatformMaxX, rightPlatformY;
 var cursors;
 var joyStick;
 var score = 0;
@@ -114,15 +115,22 @@ function create() {
         .setScale(1.5 * scaleX)
         .setStatic(true));
 
-    // 右侧平台（可左右移动，设置为kinematic）
-    rightPlatform = this.matter.add.image(this.scale.width * 0.75, this.scale.height * 0.7, 'ground')
+    // 右侧平台（动态运动体，Y固定，X自动来回，摩擦力高）
+    let groundTex = this.textures.get('ground').getSourceImage();
+    let rightPlatformWidth = 0.4 * scaleX * groundTex.width;
+    rightPlatformY = this.scale.height * 0.7;
+    rightPlatformMinX = rightPlatformWidth / 2;
+    rightPlatformMaxX = this.scale.width - rightPlatformWidth / 2;
+    rightPlatform = this.matter.add.image(this.scale.width * 0.75, rightPlatformY, 'ground')
         .setScale(0.4 * scaleX, 1)
-        .setIgnoreGravity(true)
         .setStatic(false)
-        .setFriction(0.8)
-        .setMass(100);
-    rightPlatform.body.isKinematic = true;
-    rightPlatform.setVelocityX(rightPlatformSpeed * rightPlatformDir);
+        .setFriction(1)
+        .setFrictionStatic(1)
+        .setMass(100)
+        .setIgnoreGravity(true);
+    rightPlatform.body.isKinematic = true; // 关键：运动体
+    rightPlatform.setVelocity(rightPlatformSpeed * rightPlatformDir, 0);
+
     platforms.add(rightPlatform);
 
     // 旋转平台
@@ -140,7 +148,7 @@ function create() {
     // 玩家
     player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'dude')
         .setScale(scaleX)
-        .setFriction(0.8)
+        .setFriction(1)
         .setBounce(0.2)
         .setFixedRotation()
         .setMass(1);
@@ -296,19 +304,19 @@ function update() {
         rotatePlatform.setAngularVelocity(ROTATE_SPEED);
     }
 
-    // 右侧平台自动左右移动，Y 始终不变
+    // 右侧平台自动左右移动，Y 始终不变，X碰到边缘反向
     if (rightPlatform && rightPlatform.body) {
-        let minX = rightPlatform.displayWidth / 2;
-        let maxX = this.scale.width - rightPlatform.displayWidth / 2;
-        let newX = rightPlatform.x + rightPlatform.body.velocity.x;
-
-        if ((newX <= minX && rightPlatform.body.velocity.x < 0) || (newX >= maxX && rightPlatform.body.velocity.x > 0)) {
-            rightPlatform.setVelocityX(-rightPlatform.body.velocity.x);
-            newX = Phaser.Math.Clamp(newX, minX, maxX);
+        let nextX = rightPlatform.x + rightPlatformSpeed * rightPlatformDir;
+        if (nextX < rightPlatformMinX) {
+            nextX = rightPlatformMinX;
+            rightPlatformDir = 1;
+        } else if (nextX > rightPlatformMaxX) {
+            nextX = rightPlatformMaxX;
+            rightPlatformDir = -1;
         }
-
-        rightPlatform.setPosition(newX, rightPlatform.y); // 保持Y不变
-        rightPlatform.setVelocityY(0); // 防止Y方向有速度
+        // 每帧强制Y不变，并设置速度
+        rightPlatform.setPosition(nextX, rightPlatformY);
+        rightPlatform.setVelocity(rightPlatformSpeed * rightPlatformDir, 0);
     }
 
     var joystickKeys = joyStick.createCursorKeys();
