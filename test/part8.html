@@ -223,7 +223,7 @@ function create() {
     });
 }
 
-// 随机掉落星星或炸弹
+// 随机掉落星星或炸弹（已放大）
 function dropObject() {
     const scaleX = this.scale.width / baseWidth;
     const scaleY = this.scale.height / baseHeight;
@@ -234,7 +234,7 @@ function dropObject() {
 
     if (dropType === 'star') {
         let isBig = Math.random() < 0.5;
-        let starScale = isBig ? 1.2 * scaleX : 0.6 * scaleX;
+        let starScale = isBig ? 2.0 * scaleX : 1.2 * scaleX; // 星星变大
         let star = this.matter.add.image(dropX, 0, 'star')
             .setScale(starScale)
             .setFriction(0.5)
@@ -258,7 +258,7 @@ function dropObject() {
 
     } else {
         let bomb = this.matter.add.image(dropX, 0, 'bomb')
-            .setScale(scaleX)
+            .setScale(1.8 * scaleX) // 炸弹变大
             .setFriction(0)
             .setFrictionAir(0)
             .setBounce(1.2)
