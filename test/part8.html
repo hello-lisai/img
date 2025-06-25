@@ -72,6 +72,8 @@ var timerEvent = null;
 var dropTimer = null;
 var fallingObjects = [];
 
+var oldPlatformX = null; // 新增：记录右侧平台上一帧x
+
 var game = new Phaser.Game(config);
 
 function setPlayerRectangleHeightKeepBottom(player, scale) {
@@ -221,6 +223,9 @@ function create() {
             dropObject.call(this);
         }
     });
+
+    // 新增：初始化oldPlatformX
+    oldPlatformX = rightPlatform.x;
 }
 
 // 随机掉落星星或炸弹（已放大）
@@ -300,6 +305,26 @@ function update() {
             curX = Phaser.Math.Clamp(curX, minX, maxX);
         }
         rightPlatform.setPosition(curX, rightPlatform.y);
+
+        // 新增：计算平台水平速度
+        let platformVx = rightPlatform.x - oldPlatformX;
+
+        // 新增：判断玩家是否站在平台上，并让玩家跟随平台移动
+        let tolerance = 10;
+        let onPlatform = false;
+        if (
+            player.body.position.y + player.displayHeight / 2 >= rightPlatform.body.position.y - rightPlatform.displayHeight / 2 - tolerance &&
+            player.body.position.y + player.displayHeight / 2 <= rightPlatform.body.position.y - rightPlatform.displayHeight / 2 + tolerance &&
+            Math.abs(player.x - rightPlatform.x) < rightPlatform.displayWidth / 2
+        ) {
+            onPlatform = true;
+        }
+        if (onPlatform) {
+            player.setVelocityX(player.body.velocity.x + platformVx);
+        }
+
+        // 新增：记录本帧x
+        oldPlatformX = rightPlatform.x;
     }
 
     var joystickKeys = joyStick.createCursorKeys();
