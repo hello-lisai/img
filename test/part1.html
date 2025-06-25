@@ -72,6 +72,9 @@ var timerEvent = null;
 var dropTimer = null;
 var fallingObjects = [];
 
+const MAX_SCALE = 2.0;
+const MIN_SCALE = 0.5;
+
 var game = new Phaser.Game(config);
 
 function setPlayerRectangleHeightKeepBottom(player, scale) {
@@ -293,15 +296,19 @@ function update() {
         rotatePlatform.setAngularVelocity(ROTATE_SPEED);
     }
 
-    // 右侧平台自动左右移动（使用setVelocityX，Matter.js会自动物理带动玩家）
+    // 右侧平台自动左右移动，Y 始终不变
     if (rightPlatform && rightPlatform.body) {
         let minX = rightPlatform.displayWidth / 2;
         let maxX = this.scale.width - rightPlatform.displayWidth / 2;
-        if (rightPlatform.x <= minX && rightPlatform.body.velocity.x < 0) {
-            rightPlatform.setVelocityX(Math.abs(rightPlatformSpeed));
-        } else if (rightPlatform.x >= maxX && rightPlatform.body.velocity.x > 0) {
-            rightPlatform.setVelocityX(-Math.abs(rightPlatformSpeed));
+        let newX = rightPlatform.x + rightPlatform.body.velocity.x;
+
+        if ((newX <= minX && rightPlatform.body.velocity.x < 0) || (newX >= maxX && rightPlatform.body.velocity.x > 0)) {
+            rightPlatform.setVelocityX(-rightPlatform.body.velocity.x);
+            newX = Phaser.Math.Clamp(newX, minX, maxX);
         }
+
+        rightPlatform.setPosition(newX, rightPlatform.y); // 保持Y不变
+        rightPlatform.setVelocityY(0); // 防止Y方向有速度
     }
 
     var joystickKeys = joyStick.createCursorKeys();
@@ -373,9 +380,9 @@ function collectStar(player, star) {
     let newScale;
 
     if (star.isBigStar) {
-        newScale = Math.min(oldScale + 0.2, 2.0);
+        newScale = Math.min(oldScale + 0.2, MAX_SCALE);
     } else {
-        newScale = Math.max(oldScale - 0.2, 0.5);
+        newScale = Math.max(oldScale - 0.2, MIN_SCALE);
     }
 
     player.setScale(newScale);
