@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Phaser 3 Matter 超级弹跳旋转平台游戏</title>
-    <!-- 替换为 BootCDN 的 Phaser 3.80.0 链接 -->
+    <!-- 使用 BootCDN 的 Phaser 3.80.0 链接 -->
     <script src="https://cdn.bootcdn.net/ajax/libs/phaser/3.80.0/phaser.min.js"></script>
     <style type="text/css">
         html, body { height: 100vh; margin: 0; padding: 0; overflow: hidden; touch-action: manipulation;}
@@ -93,9 +93,9 @@ function preload() {
     this.load.image('ground', 'assets/platform.png');
     this.load.image('star', 'assets/star.png');
     this.load.image('bomb', 'assets/bomb.png');
-    this.load.image('cat', 'assets/cat.png'); // 新增
-    // 替换为阿里云 OSS 或其他国内 CDN 托管的插件链接
-    this.load.plugin('rexvirtualjoystickplugin', 'https://your-oss-bucket.oss-cn-hangzhou.aliyuncs.com/rexvirtualjoystickplugin.min.js', true);
+    this.load.image('cat', 'assets/cat.png');
+    // 使用 GitHub 原始源码链接
+    this.load.plugin('rexvirtualjoystickplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js', true);
     this.load.on('loaderror', function(file) { console.error('Failed to load:', file.key); });
 }
 
@@ -202,7 +202,7 @@ function create() {
     gameTimer = 0;
     timerEvent = this.time.addEvent({
         delay: 100, // 0.1秒刷新
-        loop: true,
+        loop: personally,
         callback: () => {
             if (!gameOver) {
                 gameTimer += 0.1;
@@ -304,7 +304,7 @@ function update() {
         rightPlatform.setPosition(curX, rightPlatform.y);
 
         // --- 跟随核心代码 START ---
-        let platformDx = rightwithPlatform.x - oldPlatformX;
+        let platformDx = rightPlatform.x - oldPlatformX;
         let tolerance = 10;
         let onPlatform = false;
         if (
