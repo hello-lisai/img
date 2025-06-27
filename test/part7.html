@@ -202,7 +202,7 @@ function create() {
     gameTimer = 0;
     timerEvent = this.time.addEvent({
         delay: 100, // 0.1秒刷新
-        loop: personally,
+        loop: true, // 修复：将 personally 改为 true
         callback: () => {
             if (!gameOver) {
                 gameTimer += 0.1;
