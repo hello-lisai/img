@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Phaser 3 Matter 超级弹跳旋转平台游戏</title>
-    <!-- 替换为国内CDN的phaser库 -->
+    <!-- 替换为 BootCDN 的 Phaser 3.80.0 链接 -->
     <script src="https://cdn.bootcdn.net/ajax/libs/phaser/3.80.0/phaser.min.js"></script>
     <style type="text/css">
         html, body { height: 100vh; margin: 0; padding: 0; overflow: hidden; touch-action: manipulation;}
@@ -94,9 +94,8 @@ function preload() {
     this.load.image('star', 'assets/star.png');
     this.load.image('bomb', 'assets/bomb.png');
     this.load.image('cat', 'assets/cat.png'); // 新增
-    // 使用国内jsdelivr分流加载插件（如速度仍慢建议下载至本地assets目录并引用）
-    this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/gh/rexrainbow/phaser3-rex-notes@master/dist/rexvirtualjoystickplugin.min.js', true);
-    // 如需本地：this.load.plugin('rexvirtualjoystickplugin', 'assets/rexvirtualjoystickplugin.min.js', true);
+    // 替换为阿里云 OSS 或其他国内 CDN 托管的插件链接
+    this.load.plugin('rexvirtualjoystickplugin', 'https://your-oss-bucket.oss-cn-hangzhou.aliyuncs.com/rexvirtualjoystickplugin.min.js', true);
     this.load.on('loaderror', function(file) { console.error('Failed to load:', file.key); });
 }
 
@@ -137,7 +136,7 @@ function create() {
     });
 
     // 玩家
-    player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'cat') // 用cat.png
+    player = this.matter.add.sprite(100 * scaleX, this.scale.height * 0.7, 'cat')
         .setScale(scaleX)
         .setFriction(0.8)
         .setBounce(0.2)
@@ -226,10 +225,230 @@ function create() {
     oldPlatformX = rightPlatform.x;
 }
 
-// 其余 JS 代码保持不变...
+// 随机掉落星星或炸弹（已放大）
+function dropObject() {
+    const scaleX = this.scale.width / baseWidth;
+    const scaleY = this.scale.height / baseHeight;
+    const worldWidth = this.scale.width;
+    const dropX = Phaser.Math.Between(40 * scaleX, worldWidth - 40 * scaleX);
 
-// ...（此处省略，完整内容见你的原始 part4.html，其余部分无需变动）
+    let dropType = Math.random() < 0.5 ? 'star' : 'bomb';
 
+    if (dropType === 'star') {
+        let isBig = Math.random() < 0.5;
+        let starScale = isBig ? 2.0 * scaleX : 1.2 * scaleX; // 星星变大
+        let star = this.matter.add.image(dropX, 0, 'star')
+            .setScale(starScale)
+            .setFriction(0.5)
+            .setBounce(Phaser.Math.FloatBetween(0.4, 0.8))
+            .setMass(isBig ? 0.2 : 0.08);
+        star.isBigStar = isBig;
+        stars.add(star);
+
+        let destroyTimer = this.time.delayedCall(6000, () => {
+            if (star && star.body && !star.collected) {
+                star.destroy();
+            }
+        });
+        let redTimer = this.time.delayedCall(5000, () => {
+            if (star && star.body && !star.collected) {
+                star.setTint(0xff0000);
+            }
+        });
+
+        fallingObjects.push({ obj: star, timers: [destroyTimer, redTimer] });
+
+    } else {
+        let bomb = this.matter.add.image(dropX, 0, 'bomb')
+            .setScale(1.8 * scaleX) // 炸弹变大
+            .setFriction(0)
+            .setFrictionAir(0)
+            .setBounce(1.2)
+            .setMass(0.5);
+        bombs.add(bomb);
+
+        let destroyTimer = this.time.delayedCall(8000, () => {
+            if (bomb && bomb.body && !bomb.touched) {
+                bomb.destroy();
+            }
+        });
+        let redTimer = this.time.delayedCall(7000, () => {
+            if (bomb && bomb.body && !bomb.touched) {
+                bomb.setTint(0xff0000);
+            }
+        });
+
+        fallingObjects.push({ obj: bomb, timers: [destroyTimer, redTimer] });
+    }
+}
+
+const ROTATE_SPEED = 0.05;
+
+function update() {
+    if (gameOver) return;
+
+    // 让旋转平台一直自转
+    if (rotatePlatform && rotatePlatform.body) {
+        rotatePlatform.setAngularVelocity(ROTATE_SPEED);
+    }
+
+    // 右侧平台自动左右移动
+    if (rightPlatform && rightPlatform.body) {
+        let minX = rightPlatform.displayWidth / 2;
+        let maxX = this.scale.width - rightPlatform.displayWidth / 2;
+        let curX = rightPlatform.x + rightPlatformSpeed * rightPlatformDir;
+        if (curX <= minX || curX >= maxX) {
+            rightPlatformDir *= -1;
+            curX = Phaser.Math.Clamp(curX, minX, maxX);
+        }
+        rightPlatform.setPosition(curX, rightPlatform.y);
+
+        // --- 跟随核心代码 START ---
+        let platformDx = rightwithPlatform.x - oldPlatformX;
+        let tolerance = 10;
+        let onPlatform = false;
+        if (
+            player.body.position.y + player.displayHeight / 2 >= rightPlatform.body.position.y - rightPlatform.displayHeight / 2 - tolerance &&
+            player.body.position.y + player.displayHeight / 2 <= rightPlatform.body.position.y - rightPlatform.displayHeight / 2 + tolerance &&
+            Math.abs(player.x - rightPlatform.x) < rightPlatform.displayWidth / 2
+        ) {
+            onPlatform = true;
+        }
+        if (onPlatform) {
+            player.x += platformDx;
+        }
+        oldPlatformX = rightPlatform.x;
+        // --- 跟随核心代码 END ---
+    }
+
+    var joystickKeys = joyStick.createCursorKeys();
+    var joystickForce = joyStick.force;
+    var joystickAngle = joyStick.angle;
+    const scaleX = this.scale.width / baseWidth;
+
+    // 玩家控制
+    let velocityX = 0;
+    if (joystickKeys.left.isDown || cursors.left.isDown) {
+        velocityX = -160 * scaleX;
+        playerFacing = -1;
+    } else if (joystickKeys.right.isDown || cursors.right.isDown) {
+        velocityX = 160 * scaleX;
+        playerFacing = 1;
+    }
+    // 跳跃
+    if ((joystickKeys.up.isDown || cursors.up.isDown) && Math.abs(player.body.velocity.y) < 0.01) {
+        player.setVelocityY(-10);
+    }
+
+    player.setVelocityX(velocityX / 100);
+
+    // 虚拟摇杆也允许调整方向
+    if (joystickForce > 10 && Math.abs(player.body.velocity.y) < 0.01) {
+        if (joystickAngle > -135 && joystickAngle < -45) {
+            player.setVelocityX(-160 * scaleX / 100);
+            playerFacing = -1;
+        } else if (joystickAngle > 45 && joystickAngle < 135) {
+            player.setVelocityX(160 * scaleX / 100);
+            playerFacing = 1;
+        }
+    }
+
+    // 镜像主角
+    player.setScale(playerFacing * Math.abs(player.scaleX), Math.abs(player.scaleY));
+
+    // 保持玩家始终直立
+    player.setRotation(0);
+
+    // 炸弹持续弹跳
+    bombs.children.iterate((bomb) => {
+        if (bomb && bomb.body && !bomb.touched) {
+            const vx = bomb.body.velocity.x;
+            const vy = bomb.body.velocity.y;
+            if (Math.abs(vy) < 1) {
+                bomb.setVelocityY(-12 - Math.random()*5);
+            }
+            if (Math.abs(vx) < 1) {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                bomb.setVelocityX(dir * (3 + Math.random()*2));
+            }
+        }
+    });
+}
+
+function collectStar(player, star) {
+    if (star.collected) return;
+    star.collected = true;
+    removeFallingObject(star);
+
+    star.destroy();
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    let oldX = player.x;
+    let oldY = player.y;
+    let oldVelocity = { x: player.body.velocity.x, y: player.body.velocity.y };
+    let oldScale = Math.abs(player.scaleX);
+    let newScale;
+
+    if (star.isBigStar) {
+        newScale = Math.min(oldScale + 0.2, 2.0);
+    } else {
+        newScale = Math.max(oldScale - 0.2, 0.5);
+    }
+
+    player.setScale(playerFacing * newScale, newScale);
+
+    setPlayerRectangleHeightKeepBottom(player, newScale);
+    player.setPosition(oldX, oldY);
+    player.setVelocity(oldVelocity.x, oldVelocity.y);
+}
+
+function hitBomb(player, bomb) {
+    if (gameOver) return;
+    bomb.touched = true;
+    removeFallingObject(bomb);
+
+    this.matter.world.enabled = false;
+    player.setTint(0xff0000);
+    gameOver = true;
+
+    if (timerEvent) timerEvent.paused = true;
+    if (dropTimer) dropTimer.paused = true;
+
+    fallingObjects.forEach(item => {
+        if (item.obj && item.obj.body) {
+            item.timers.forEach(timer => timer.remove(false));
+            if (item.obj.texture && item.obj.texture.key === 'star') {
+                item.obj.destroy();
+            }
+            if (item.obj.texture && item.obj.texture.key === 'bomb' && !item.obj.touched) {
+                item.obj.destroy();
+            }
+        }
+    });
+    fallingObjects.length = 0;
+}
+
+function removeFallingObject(obj) {
+    for (let i = 0; i < fallingObjects.length; i++) {
+        if (fallingObjects[i].obj === obj) {
+            fallingObjects[i].timers.forEach(timer => timer.remove(false));
+            fallingObjects.splice(i, 1);
+            break;
+        }
+    }
+}
+
+window.addEventListener('resize', () => {
+    let newWidth = window.innerWidth;
+    let newHeight = window.innerHeight;
+    if (newWidth / newHeight > aspectRatio) {
+        newWidth = newHeight * aspectRatio;
+    } else {
+        newHeight = newWidth / aspectRatio;
+    }
+    game.scale.resize(newWidth, newHeight);
+});
 </script>
 </body>
 </html>
